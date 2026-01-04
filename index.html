@@ -1,0 +1,2461 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Resource Planning Dashboard - Production</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; }
+        
+        /* LOGIN */
+        .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; max-width: 400px; width: 90%; }
+        .login-title { font-size: 32px; font-weight: 700; color: #667eea; text-align: center; margin-bottom: 30px; }
+        .login-row { margin-bottom: 20px; }
+        .login-row label { display: block; font-weight: 600; margin-bottom: 8px; }
+        .login-row select, .login-row input { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; }
+        .login-btn { width: 100%; padding: 14px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .login-error { display: none; margin-top: 15px; padding: 12px; background: #fee2e2; color: #991b1b; border-radius: 6px; text-align: center; }
+        
+        .container { max-width: 2000px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 28px; margin-bottom: 5px; }
+        .header-subtitle { opacity: 0.9; font-size: 14px; margin-top: 5px; }
+        .upload-section { display: flex; gap: 10px; align-items: center; }
+        .upload-btn { padding: 10px 20px; background: white; color: #667eea; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; transition: all 0.2s; }
+        .upload-btn:hover { background: #f3f4f6; transform: translateY(-1px); }
+        .upload-status { font-size: 12px; opacity: 0.9; }
+        .tabs { display: flex; gap: 5px; padding: 15px 30px 0; background: white; border-bottom: 2px solid #e5e7eb; }
+        .tab { padding: 12px 24px; border: none; background: transparent; cursor: pointer; font-size: 15px; font-weight: 600; color: #6b7280; border-radius: 8px 8px 0 0; transition: all 0.2s; }
+        .tab:hover { background: #f3f4f6; }
+        .tab.active { background: #667eea; color: white; }
+        .controls { padding: 20px 30px; background: white; display: flex; gap: 15px; align-items: center; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap; }
+        .controls label { font-weight: 600; color: #1f2937; }
+        .controls select { padding: 8px 16px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; cursor: pointer; }
+        .btn-group { display: flex; gap: 8px; margin-left: auto; }
+        .btn { padding: 8px 16px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; background: white; transition: all 0.2s; }
+        .btn:hover { background: #f3f4f6; border-color: #667eea; }
+        .content { padding: 30px; }
+        .view { display: none; }
+        .view.active { display: block; }
+        
+        /* Loading Overlay */
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; }
+        .loading-overlay.active { display: flex; }
+        .loading-content { background: white; padding: 30px 50px; border-radius: 12px; text-align: center; }
+        .loading-spinner { border: 4px solid #f3f4f6; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes slideInRight { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(400px); opacity: 0; } }
+        
+        /* Gantt */
+        .gantt-legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 6px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; padding: 6px 10px; border-radius: 4px; transition: all 0.2s; }
+        .legend-item:hover { background: #e5e7eb; }
+        .legend-item.disabled { opacity: 0.3; }
+        .legend-box { width: 20px; height: 14px; border-radius: 3px; }
+        .gantt-scroll { overflow-x: auto; border: 2px solid #e5e7eb; border-radius: 8px; }
+        .gantt-table { border-collapse: collapse; min-width: 100%; }
+        .gantt-table th { background: #f3f4f6; padding: 10px 8px; text-align: center; font-size: 11px; font-weight: 700; border: 1px solid #e5e7eb; white-space: nowrap; }
+        .gantt-table th:first-child { position: sticky; left: 0; z-index: 20; text-align: left; min-width: 150px; background: #f3f4f6; }
+        .gantt-table td { padding: 8px; text-align: center; border: 1px solid #f1f3f5; vertical-align: middle; }
+        .gantt-table td:first-child { position: sticky; left: 0; background: white; z-index: 10; text-align: left; border-right: 2px solid #e5e7eb; }
+        .resource-name { font-size: 13px; font-weight: 700; color: #1f2937; }
+        .resource-target { font-size: 10px; color: #6b7280; margin-top: 2px; }
+        .project-bar { display: inline-block; padding: 3px 7px; border-radius: 3px; color: white; font-size: 10px; font-weight: 700; margin: 1px; }
+        .total-cell { font-weight: 700; font-size: 13px; }
+        .pct-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; margin-top: 3px; }
+        .pct-green { background: #d1fae5; color: #065f46; }
+        .pct-yellow { background: #fef3c7; color: #92400e; }
+        .pct-red { background: #fee2e2; color: #991b1b; }
+        
+        /* What-If */
+        .whatif-section { margin-bottom: 30px; }
+        .whatif-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .whatif-header h3 { font-size: 18px; font-weight: 700; }
+        .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 12px; margin-bottom: 30px; }
+        .project-card { display: flex; flex-direction: column; gap: 12px; padding: 15px; background: white; border: 2px solid #e5e7eb; border-radius: 8px; transition: all 0.2s; }
+        .project-card:hover { border-color: #667eea; box-shadow: 0 2px 8px rgba(102,126,234,0.2); }
+        .project-card.disabled { opacity: 0.4; border-color: #f3f4f6; }
+        .project-card-header { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .project-card input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; }
+        .project-info { flex: 1; }
+        .project-title { font-size: 14px; font-weight: 700; color: #1f2937; margin-bottom: 4px; }
+        .project-stats { display: flex; gap: 15px; font-size: 12px; color: #6b7280; margin-bottom: 8px; flex-wrap: wrap; }
+        .project-stat { display: flex; align-items: center; gap: 4px; }
+        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+        .status-won { background: #d1fae5; color: #065f46; }
+        .status-qualified { background: #fef3c7; color: #92400e; }
+        .resources-section { border-top: 1px solid #e5e7eb; padding-top: 10px; }
+        .resources-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer; user-select: none; }
+        .resources-header:hover { color: #667eea; }
+        .resources-title { font-size: 12px; font-weight: 600; color: #6b7280; }
+        .resources-list { display: none; }
+        .resources-list.expanded { display: block; }
+        .resource-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #6b7280; }
+        .resource-name-small { font-weight: 600; color: #1f2937; }
+        .resource-hours { color: #10b981; font-weight: 600; }
+        
+        /* Heat Map */
+        .heat-legend { display: flex; gap: 15px; margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 6px; font-size: 12px; flex-wrap: wrap; }
+        .heat-legend-item { display: flex; align-items: center; gap: 6px; }
+        .heat-legend-box { width: 35px; height: 20px; border-radius: 3px; border: 1px solid #d1d5db; }
+        .heatmap-scroll { overflow-x: auto; border: 2px solid #e5e7eb; border-radius: 8px; }
+        .heatmap-table { border-collapse: collapse; min-width: 100%; }
+        .heatmap-table th { background: #1f2937; color: white; padding: 8px; text-align: center; font-size: 10px; font-weight: 700; border: 1px solid #374151; }
+        .heatmap-table th:first-child { position: sticky; left: 0; z-index: 20; min-width: 140px; text-align: left; }
+        .heatmap-table td { padding: 10px 6px; text-align: center; border: 1px solid #d1d5db; font-size: 11px; font-weight: 600; min-width: 50px; }
+        .heatmap-table td:first-child { position: sticky; left: 0; background: white; z-index: 10; text-align: left; font-weight: 700; border-right: 2px solid #9ca3af; }
+        .heat-darkred { background: #f87171; color: #7f1d1d; font-weight: 700; }
+        .heat-lightred { background: #fca5a5; color: #991b1b; font-weight: 700; }
+        .heat-amber { background: #fbbf24; color: #78350f; font-weight: 700; }
+        .heat-lightgreen { background: #86efac; color: #14532d; font-weight: 700; }
+        .heat-green { background: #4ade80; color: #14532d; font-weight: 700; }
+        .heat-darkgreen { background: #22c55e; color: white; font-weight: 700; }
+        
+        /* Project View Styles */
+        .project-view-header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 25px; 
+            border-radius: 8px; 
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+        }
+        .project-view-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .project-view-subtitle { font-size: 14px; opacity: 0.9; }
+        .project-stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            margin: 20px 0;
+        }
+        .stat-card { 
+            background: white; 
+            padding: 18px; 
+            border-radius: 8px; 
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .stat-label { font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; }
+        .stat-value { font-size: 24px; font-weight: 700; color: #1f2937; }
+        .date-range-selector { 
+            background: #f9fafb; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 25px;
+            border: 2px solid #e5e7eb;
+        }
+        .date-range-selector label { 
+            display: block; 
+            font-weight: 600; 
+            color: #1f2937; 
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .date-inputs { 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            flex-wrap: wrap;
+        }
+        .date-inputs input { 
+            padding: 10px 14px; 
+            border: 2px solid #d1d5db; 
+            border-radius: 6px; 
+            font-size: 14px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .date-inputs button { 
+            padding: 10px 20px; 
+            background: #667eea; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .date-inputs button:hover { background: #5568d3; transform: translateY(-1px); }
+        .resource-allocation-list { 
+            background: white; 
+            border-radius: 8px; 
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        .allocation-item { 
+            border-bottom: 1px solid #e5e7eb; 
+            padding: 20px;
+            transition: background 0.2s;
+        }
+        .allocation-item:hover { background: #f9fafb; }
+        .allocation-item:last-child { border-bottom: none; }
+        .allocation-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 12px;
+        }
+        .resource-name-large { 
+            font-size: 18px; 
+            font-weight: 700; 
+            color: #1f2937;
+        }
+        .resource-total-hours { 
+            font-size: 16px; 
+            font-weight: 700; 
+            color: #667eea;
+            background: #f0f4ff;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+        .daily-breakdown { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+            gap: 8px; 
+            margin-top: 12px;
+        }
+        .day-item { 
+            background: #f9fafb; 
+            padding: 10px; 
+            border-radius: 6px; 
+            border: 1px solid #e5e7eb;
+        }
+        .day-date { 
+            font-size: 11px; 
+            font-weight: 600; 
+            color: #6b7280; 
+            margin-bottom: 4px;
+        }
+        .day-hours { 
+            font-size: 16px; 
+            font-weight: 700; 
+            color: #10b981;
+        }
+        .export-buttons { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 20px;
+        }
+        .export-btn { 
+            padding: 10px 20px; 
+            background: white; 
+            border: 2px solid #667eea; 
+            color: #667eea; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .export-btn:hover { 
+            background: #667eea; 
+            color: white;
+        }
+        @media print {
+            .header, .tabs, .controls, .export-buttons { display: none; }
+            .project-view-header { background: #667eea; -webkit-print-color-adjust: exact; }
+        }
+        
+        /* CALENDAR */
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #e5e7eb; border-radius: 8px; overflow: hidden; margin-top: 20px; }
+        .cal-header { background: #667eea; color: white; padding: 12px; text-align: center; font-weight: 600; font-size: 12px; }
+        .cal-day { background: white; min-height: 100px; padding: 8px; position: relative; }
+        .cal-day.other-month { background: #f9fafb; opacity: 0.6; }
+        .cal-day.today { background: #fef3c7; border: 2px solid #f59e0b; }
+        .cal-date { font-weight: 600; font-size: 14px; color: #1f2937; margin-bottom: 4px; }
+        .cal-hours { font-size: 11px; background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-bottom: 4px; }
+        .cal-hours.over { background: #fee2e2; color: #991b1b; font-weight: 600; }
+        .cal-project { font-size: 9px; padding: 3px 6px; border-radius: 3px; margin-bottom: 2px; color: white; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 8px; }
+        .cal-nav button { padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <!-- LOGIN -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-box">
+            <div class="login-title">ROHLING</div>
+            <div class="login-row">
+                <label>Role</label>
+                <select id="userRole">
+                    <option value="">Select Role</option>
+                    <option value="pm">Project Manager</option>
+                    <option value="team">Team Member</option>
+                </select>
+            </div>
+            <div class="login-row">
+                <label>Access Code</label>
+                <input type="password" id="accessCode" placeholder="Enter code (team: no code needed)">
+            </div>
+            <button class="login-btn" onclick="login()">Login</button>
+            <div class="login-error" id="loginError">Invalid code</div>
+        </div>
+    </div>
+    
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div style="font-size: 16px; font-weight: 600; color: #1f2937;">Processing Excel File...</div>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">Extracting projects and resources</div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer" style="display:none;">
+        <div class="header">
+            <div>
+                <h1>🎯 Resource Planning Dashboard</h1>
+                <div class="header-subtitle" id="data-source">Jan-Jul 2026 | Accurate Resource Allocations</div>
+            </div>
+            <div class="upload-section">
+                <input type="file" id="file-upload" accept=".xlsx" style="display:none" onchange="uploadExcel(event)">
+                <button class="upload-btn" onclick="document.getElementById('file-upload').click()">
+                    📤 Upload Excel
+                </button>
+                <button class="upload-btn" onclick="exportToJSON()" title="Export current data to JSON for GitHub">
+                    📥 Export JSON
+                </button>
+                <button class="upload-btn" onclick="manualRefresh()" title="Check GitHub for updates now">
+                    🔄 Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="tabs" id="main-tabs">
+            <button class="tab active" onclick="switchTab('gantt')">📊 Resource Gantt</button>
+            <button class="tab" onclick="switchTab('whatif')">🔥 What-If Analysis</button>
+            <button class="tab" onclick="switchTab('projects')">📋 Projects</button>
+            <button class="tab" onclick="switchTab('project-detail')">📄 Project Details</button>
+            <button class="tab" onclick="switchTab('calendar')">📅 My Calendar</button>
+        </div>
+        
+        <div class="controls">
+            <label>Period:</label>
+            <select id="period-filter" onchange="updateAll()">
+                <option value="all">All (Jan-Jul)</option>
+                <option value="Q1">Q1 2026</option>
+                <option value="Q2">Q2 2026</option>
+                <option value="Q3">Q3 2026</option>
+            </select>
+            
+            <label>Gantt View:</label>
+            <select id="gantt-mode" onchange="renderGantt()">
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+            </select>
+            
+            <label>Heat Map View:</label>
+            <select id="heatmap-mode" onchange="renderWhatIf()">
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+            </select>
+            
+            <div class="btn-group">
+                <button class="btn" onclick="selectAllProjects()">✓ Select All</button>
+                <button class="btn" onclick="deselectAllProjects()">✗ Deselect All</button>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div id="tab-gantt" class="view active">
+                <div class="gantt-legend" id="gantt-legend"></div>
+                <div class="gantt-scroll"><table class="gantt-table" id="gantt-table"></table></div>
+            </div>
+            
+            <div id="tab-whatif" class="view">
+                <div class="whatif-section">
+                    <div class="whatif-header"><h3>Project Selection & Resource Breakdown</h3></div>
+                    <div class="project-grid" id="project-grid"></div>
+                </div>
+                
+                <div class="whatif-section">
+                    <h3>Team Utilization Heat Map</h3>
+                    <div class="heat-legend">
+                        <div class="heat-legend-item"><div class="heat-legend-box heat-darkred"></div><span>&lt;20% Critical</span></div>
+                        <div class="heat-legend-item"><div class="heat-legend-box heat-lightred"></div><span>20-50% Under</span></div>
+                        <div class="heat-legend-item"><div class="heat-legend-box heat-amber"></div><span>50-70% Below</span></div>
+                        <div class="heat-legend-item"><div class="heat-legend-box heat-lightgreen"></div><span>70-90% Good</span></div>
+                        <div class="heat-legend-item"><div class="heat-legend-box heat-green"></div><span>90-100% Perfect</span></div>
+                        <div class="heat-legend-item"><div class="heat-legend-box heat-darkgreen"></div><span>&gt;100% Over</span></div>
+                    </div>
+                    <div class="heatmap-scroll"><table class="heatmap-table" id="heatmap-table"></table></div>
+                </div>
+            </div>
+            
+            <div id="tab-projects" class="view">
+                <table class="gantt-table" style="width: 100%;">
+                    <thead>
+                        <tr><th>Enable</th><th>Status</th><th>Project ID</th><th>Client</th><th style="text-align:right">Hours</th><th style="text-align:right">Revenue</th></tr>
+                    </thead>
+                    <tbody id="projects-tbody"></tbody>
+                    <tfoot>
+                        <tr style="background: #fef3c7; font-weight: 700;">
+                            <td colspan="4" style="text-align: right; padding-right: 20px;">TOTAL:</td>
+                            <td style="text-align: right;" id="total-hours">0</td>
+                            <td style="text-align: right;" id="total-revenue">$0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- Single Project Details View -->
+            <div id="tab-project-detail" class="view">
+                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 25px; border: 2px solid #e5e7eb;">
+                    <label style="display: block; font-weight: 600; color: #1f2937; margin-bottom: 10px; font-size: 14px;">
+                        Select Project
+                    </label>
+                    <select id="project-selector" onchange="renderSelectedProject()" style="width: 100%; max-width: 600px; padding: 12px 16px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 14px; cursor: pointer;">
+                        <option value="">-- Choose a project --</option>
+                    </select>
+                </div>
+                
+                <div id="project-detail-content"></div>
+            </div>
+            
+            <!-- CALENDAR VIEW -->
+            <div id="tab-calendar" class="view">
+                <div class="cal-nav">
+                    <div>
+                        <label style="font-weight: 600; margin-right: 10px;">Your Name:</label>
+                        <select id="calResource" onchange="renderCal()" style="padding: 10px 16px; border: 2px solid #d1d5db; border-radius: 6px; min-width: 200px;">
+                            <option value="">Select your name</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="changeCalMonth(-1)">← Prev</button>
+                        <span id="calMonthYear" style="font-weight: 600; min-width: 120px; text-align: center;">January 2026</span>
+                        <button onclick="changeCalMonth(1)">Next →</button>
+                    </div>
+                </div>
+                <div id="calGrid" class="cal-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === GITHUB AUTO-LOAD CONFIGURATION ===
+        const GITHUB_CONFIG = {
+            enabled: true,  // Set to false to disable auto-load
+            dataUrl: 'https://kaabia79.github.io/Resource-Dashboard/Portfolio-data.json',
+            refreshInterval: 5 * 60 * 1000,  // 5 minutes in milliseconds
+            lastUpdate: null,
+            lastDataHash: null
+        };
+        
+        let projects = [
+        {
+                "id": "J000345",
+                "name": "J000345 BaptistCare NSW and ACT | Homecare Solution Architecture",
+                "client": "BaptistCare NSW and ACT",
+                "totalHours": 112,
+                "revenue": 26600,
+                "status": "Won",
+                "fullName": "BaptistCare NSW and ACT - J000345 - J000345 BaptistCare NSW and ACT | Homecare Solution Architecture",
+                "enabled": true,
+                "uniqueKey": "project_0",
+                "resourceBreakdown": {
+                        "Jayson": 112.0
+                },
+                "resourceCount": 1
+        },
+        {
+                "id": "J000363",
+                "name": "J000363 - Carrington | IT Team Backfill & Data Analyst Support",
+                "client": "Carrington Care",
+                "totalHours": 80,
+                "revenue": 17000,
+                "status": "Won",
+                "fullName": "Carrington Care - J000363 - J000363 - Carrington | IT Team Backfill & Data Analyst Support",
+                "enabled": true,
+                "uniqueKey": "project_1",
+                "resourceBreakdown": {
+                        "Matt": 80.0
+                },
+                "resourceCount": 1
+        },
+        {
+                "id": "J000352",
+                "name": "J000352  - CatholicCare | Horizon Implementation",
+                "client": "CatholicCare Sydney Limited",
+                "totalHours": 2364,
+                "revenue": 573430,
+                "status": "Won",
+                "fullName": "CatholicCare Sydney Limited - J000352 - J000352  - CatholicCare | Horizon Implementation",
+                "enabled": true,
+                "uniqueKey": "project_2",
+                "resourceBreakdown": {
+                        "Barbara": 64.0,
+                        "Brett": 904.0,
+                        "Renee": 172.0,
+                        "Pamela": 520.0,
+                        "Belinda": 704.0
+                },
+                "resourceCount": 5
+        },
+        {
+                "id": "CCS001",
+                "name": "CCS001 CatholicCare | Project Horizon Implementation",
+                "client": "CatholicCare Sydney Limited",
+                "totalHours": 16,
+                "revenue": 4220,
+                "status": "Won",
+                "fullName": "CatholicCare Sydney Limited - CCS001 - CCS001 CatholicCare | Project Horizon Implementation",
+                "enabled": true,
+                "uniqueKey": "project_3",
+                "resourceBreakdown": {
+                        "Brett": 16.0
+                },
+                "resourceCount": 1
+        },
+        {
+                "id": "F000001",
+                "name": "F000001 - RSL Lifecare | CRM, Billing & Integration Solution Assessment",
+                "client": "RSL Life Care",
+                "totalHours": 260,
+                "revenue": 63850,
+                "status": "Qualified",
+                "fullName": "RSL Life Care - F000001 - F000001 - RSL Lifecare | CRM, Billing & Integration Solution Assessment",
+                "enabled": true,
+                "uniqueKey": "project_4",
+                "resourceBreakdown": {
+                        "Barbara": 64.0,
+                        "Kal": 60.0,
+                        "Kevin": 64.0,
+                        "Renee": 56.0,
+                        "Ali": 16.0
+                },
+                "resourceCount": 5
+        },
+        {
+                "id": "F000002",
+                "name": "F000002 - RSL Lifecare | Modernising Clinical System Assessment",
+                "client": "RSL Life Care",
+                "totalHours": 232,
+                "revenue": 57500,
+                "status": "Qualified",
+                "fullName": "RSL Life Care - F000002 - F000002 - RSL Lifecare | Modernising Clinical System Assessment",
+                "enabled": true,
+                "uniqueKey": "project_5",
+                "resourceBreakdown": {
+                        "Barbara": 56.0,
+                        "Kal": 16.0,
+                        "Kevin": 80.0,
+                        "Renee": 64.0,
+                        "Ali": 16.0
+                },
+                "resourceCount": 5
+        },
+        {
+                "id": "F000001",
+                "name": "F000001- Uniting | Billing Solution Build & Deploy",
+                "client": "Uniting (NSW.ACT)",
+                "totalHours": 3112,
+                "revenue": 772900,
+                "status": "Won",
+                "fullName": "Uniting (NSW.ACT) - F000001 - F000001- Uniting | Billing Solution Build & Deploy",
+                "enabled": true,
+                "uniqueKey": "project_6",
+                "resourceBreakdown": {
+                        "Gerard": 312.0,
+                        "Kevin": 72.0,
+                        "Sharon": 816.0,
+                        "Jack": 472.0,
+                        "Jennifer": 816.0,
+                        "Bagus": 312.0,
+                        "Siva": 312.0
+                },
+                "resourceCount": 7
+        },
+        {
+                "id": "F000001",
+                "name": "F000001 - Endeavour Foundation | CMS Implementation",
+                "client": "Endeavour Foundation",
+                "totalHours": 484,
+                "revenue": 123200,
+                "status": "Qualified",
+                "fullName": "Endeavour Foundation - F000001 - F000001 - Endeavour Foundation | CMS Implementation",
+                "enabled": true,
+                "uniqueKey": "project_7",
+                "resourceBreakdown": {
+                        "Allanah": 176.0,
+                        "Barbara": 88.0,
+                        "Kevin": 88.0,
+                        "Jack": 88.0,
+                        "Pamela": 44.0
+                },
+                "resourceCount": 5
+        }
+];
+        let resources = [
+        {
+                "name": "Allanah",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Barbara",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Brett",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Gerard",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Jayson",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Kal",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Kevin",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Sharon",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Jack",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Renee",
+                "rate": 264,
+                "capacity": 20
+        },
+        {
+                "name": "Jennifer",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Matt",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Bagus",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Pamela",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Siva",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Ali",
+                "rate": 264,
+                "capacity": 40
+        },
+        {
+                "name": "Belinda",
+                "rate": 264,
+                "capacity": 40
+        }
+];
+        let assignments = [
+        {
+                "resourceName": "Allanah",
+                "projectId": "F000001",
+                "projectIndex": 7,
+                "hoursPerWeek": 8.0,
+                "startWeek": 5,
+                "endWeek": 26
+        },
+        {
+                "resourceName": "Barbara",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 16.0,
+                "startWeek": 1,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Barbara",
+                "projectId": "F000001",
+                "projectIndex": 7,
+                "hoursPerWeek": 4.0,
+                "startWeek": 5,
+                "endWeek": 26
+        },
+        {
+                "resourceName": "Barbara",
+                "projectId": "F000001",
+                "projectIndex": 4,
+                "hoursPerWeek": 8.0,
+                "startWeek": 1,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Barbara",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 8.0,
+                "startWeek": 1,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Barbara",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 4.0,
+                "startWeek": 5,
+                "endWeek": 5
+        },
+        {
+                "resourceName": "Barbara",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 8.0,
+                "startWeek": 6,
+                "endWeek": 6
+        },
+        {
+                "resourceName": "Barbara",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 4.0,
+                "startWeek": 7,
+                "endWeek": 9
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 32.0,
+                "startWeek": 0,
+                "endWeek": 0
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 40.0,
+                "startWeek": 1,
+                "endWeek": 3
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 32.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 40.0,
+                "startWeek": 5,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 32.0,
+                "startWeek": 9,
+                "endWeek": 13
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 24.0,
+                "startWeek": 14,
+                "endWeek": 14
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 32.0,
+                "startWeek": 15,
+                "endWeek": 16
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 24.0,
+                "startWeek": 17,
+                "endWeek": 17
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 32.0,
+                "startWeek": 18,
+                "endWeek": 26
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "CCS001",
+                "projectIndex": 3,
+                "hoursPerWeek": 8.0,
+                "startWeek": 0,
+                "endWeek": 0
+        },
+        {
+                "resourceName": "Brett",
+                "projectId": "CCS001",
+                "projectIndex": 3,
+                "hoursPerWeek": 8.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Gerard",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 1,
+                "endWeek": 3
+        },
+        {
+                "resourceName": "Gerard",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Gerard",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 5,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Jayson",
+                "projectId": "J000345",
+                "projectIndex": 0,
+                "hoursPerWeek": 40.0,
+                "startWeek": 1,
+                "endWeek": 2
+        },
+        {
+                "resourceName": "Jayson",
+                "projectId": "J000345",
+                "projectIndex": 0,
+                "hoursPerWeek": 32.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Kal",
+                "projectId": "F000001",
+                "projectIndex": 4,
+                "hoursPerWeek": 4.0,
+                "startWeek": 1,
+                "endWeek": 1
+        },
+        {
+                "resourceName": "Kal",
+                "projectId": "F000001",
+                "projectIndex": 4,
+                "hoursPerWeek": 8.0,
+                "startWeek": 2,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Kal",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 4.0,
+                "startWeek": 1,
+                "endWeek": 3
+        },
+        {
+                "resourceName": "Kal",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 4.0,
+                "startWeek": 5,
+                "endWeek": 5
+        },
+        {
+                "resourceName": "Kevin",
+                "projectId": "F000001",
+                "projectIndex": 7,
+                "hoursPerWeek": 4.0,
+                "startWeek": 5,
+                "endWeek": 26
+        },
+        {
+                "resourceName": "Kevin",
+                "projectId": "F000001",
+                "projectIndex": 4,
+                "hoursPerWeek": 16.0,
+                "startWeek": 5,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Kevin",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 16.0,
+                "startWeek": 5,
+                "endWeek": 7
+        },
+        {
+                "resourceName": "Kevin",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 24.0,
+                "startWeek": 8,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Kevin",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 8.0,
+                "startWeek": 9,
+                "endWeek": 9
+        },
+        {
+                "resourceName": "Kevin",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 1,
+                "endWeek": 1
+        },
+        {
+                "resourceName": "Kevin",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Sharon",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 1,
+                "endWeek": 3
+        },
+        {
+                "resourceName": "Sharon",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Sharon",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 5,
+                "endWeek": 13
+        },
+        {
+                "resourceName": "Sharon",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 14,
+                "endWeek": 14
+        },
+        {
+                "resourceName": "Sharon",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 15,
+                "endWeek": 16
+        },
+        {
+                "resourceName": "Sharon",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 17,
+                "endWeek": 17
+        },
+        {
+                "resourceName": "Sharon",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 18,
+                "endWeek": 21
+        },
+        {
+                "resourceName": "Jack",
+                "projectId": "F000001",
+                "projectIndex": 7,
+                "hoursPerWeek": 4.0,
+                "startWeek": 5,
+                "endWeek": 26
+        },
+        {
+                "resourceName": "Jack",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 1,
+                "endWeek": 3
+        },
+        {
+                "resourceName": "Jack",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Jack",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 5,
+                "endWeek": 12
+        },
+        {
+                "resourceName": "Renee",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 4.0,
+                "startWeek": 2,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Renee",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 8.0,
+                "startWeek": 9,
+                "endWeek": 26
+        },
+        {
+                "resourceName": "Renee",
+                "projectId": "F000001",
+                "projectIndex": 4,
+                "hoursPerWeek": 8.0,
+                "startWeek": 2,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Renee",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 8.0,
+                "startWeek": 2,
+                "endWeek": 9
+        },
+        {
+                "resourceName": "Jennifer",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 1,
+                "endWeek": 3
+        },
+        {
+                "resourceName": "Jennifer",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Jennifer",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 5,
+                "endWeek": 13
+        },
+        {
+                "resourceName": "Jennifer",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 14,
+                "endWeek": 14
+        },
+        {
+                "resourceName": "Jennifer",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 15,
+                "endWeek": 16
+        },
+        {
+                "resourceName": "Jennifer",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 17,
+                "endWeek": 17
+        },
+        {
+                "resourceName": "Jennifer",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 18,
+                "endWeek": 21
+        },
+        {
+                "resourceName": "Matt",
+                "projectId": "J000363",
+                "projectIndex": 1,
+                "hoursPerWeek": 24.0,
+                "startWeek": 1,
+                "endWeek": 2
+        },
+        {
+                "resourceName": "Matt",
+                "projectId": "J000363",
+                "projectIndex": 1,
+                "hoursPerWeek": 16.0,
+                "startWeek": 3,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Bagus",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 1,
+                "endWeek": 3
+        },
+        {
+                "resourceName": "Bagus",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Bagus",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 5,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Pamela",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 20.0,
+                "startWeek": 1,
+                "endWeek": 26
+        },
+        {
+                "resourceName": "Pamela",
+                "projectId": "F000001",
+                "projectIndex": 7,
+                "hoursPerWeek": 2.0,
+                "startWeek": 5,
+                "endWeek": 26
+        },
+        {
+                "resourceName": "Siva",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 1,
+                "endWeek": 3
+        },
+        {
+                "resourceName": "Siva",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 32.0,
+                "startWeek": 4,
+                "endWeek": 4
+        },
+        {
+                "resourceName": "Siva",
+                "projectId": "F000001",
+                "projectIndex": 6,
+                "hoursPerWeek": 40.0,
+                "startWeek": 5,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Ali",
+                "projectId": "F000001",
+                "projectIndex": 4,
+                "hoursPerWeek": 2.0,
+                "startWeek": 1,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Ali",
+                "projectId": "F000002",
+                "projectIndex": 5,
+                "hoursPerWeek": 2.0,
+                "startWeek": 1,
+                "endWeek": 8
+        },
+        {
+                "resourceName": "Belinda",
+                "projectId": "J000352",
+                "projectIndex": 2,
+                "hoursPerWeek": 32.0,
+                "startWeek": 5,
+                "endWeek": 26
+        }
+];
+        const projectColors = {
+        "project_0": "#3b82f6",
+        "project_1": "#ef4444",
+        "project_2": "#f59e0b",
+        "project_3": "#8b5cf6",
+        "project_4": "#ec4899",
+        "project_5": "#06b6d4",
+        "project_6": "#84cc16",
+        "project_7": "#f97316"
+};
+        
+        const billableTargets = {
+            'Renee': 0.50, 'Siva': 1.00, 'Bagus': 1.00, 'Brett': 1.00,
+            'Jayson': 0.80, 'Darren': 0.30, 'Ian': 0.30, 'default': 0.90
+        };
+        
+        const weeks = [
+            {num: 0, date: '01-02', month: 'Jan', quarter: 'Q1'}, {num: 1, date: '01-09', month: 'Jan', quarter: 'Q1'},
+            {num: 2, date: '01-16', month: 'Jan', quarter: 'Q1'}, {num: 3, date: '01-23', month: 'Jan', quarter: 'Q1'},
+            {num: 4, date: '01-30', month: 'Jan', quarter: 'Q1'}, {num: 5, date: '02-06', month: 'Feb', quarter: 'Q1'},
+            {num: 6, date: '02-13', month: 'Feb', quarter: 'Q1'}, {num: 7, date: '02-20', month: 'Feb', quarter: 'Q1'},
+            {num: 8, date: '02-27', month: 'Feb', quarter: 'Q1'}, {num: 9, date: '03-06', month: 'Mar', quarter: 'Q1'},
+            {num: 10, date: '03-13', month: 'Mar', quarter: 'Q1'}, {num: 11, date: '03-20', month: 'Mar', quarter: 'Q1'},
+            {num: 12, date: '03-27', month: 'Mar', quarter: 'Q1'}, {num: 13, date: '04-03', month: 'Apr', quarter: 'Q2'},
+            {num: 14, date: '04-10', month: 'Apr', quarter: 'Q2'}, {num: 15, date: '04-17', month: 'Apr', quarter: 'Q2'},
+            {num: 16, date: '04-24', month: 'Apr', quarter: 'Q2'}, {num: 17, date: '05-01', month: 'May', quarter: 'Q2'},
+            {num: 18, date: '05-08', month: 'May', quarter: 'Q2'}, {num: 19, date: '05-15', month: 'May', quarter: 'Q2'},
+            {num: 20, date: '05-22', month: 'May', quarter: 'Q2'}, {num: 21, date: '05-29', month: 'May', quarter: 'Q2'},
+            {num: 22, date: '06-05', month: 'Jun', quarter: 'Q2'}, {num: 23, date: '06-12', month: 'Jun', quarter: 'Q2'},
+            {num: 24, date: '06-19', month: 'Jun', quarter: 'Q2'}, {num: 25, date: '06-26', month: 'Jun', quarter: 'Q2'},
+            {num: 26, date: '07-03', month: 'Jul', quarter: 'Q3'}
+        ];
+        
+        function getFilteredWeeks() {
+            const filter = document.getElementById('period-filter').value;
+            if (filter === 'all') return weeks;
+            if (filter === 'Q1') return weeks.filter(w => w.quarter === 'Q1');
+            if (filter === 'Q2') return weeks.filter(w => w.quarter === 'Q2');
+            if (filter === 'Q3') return weeks.filter(w => w.quarter === 'Q3');
+            return weeks;
+        }
+        
+        function getActiveProjects() {
+            return projects.filter(p => p.enabled === true);
+        }
+        
+        function getActiveAssignments() {
+            const activeProjects = getActiveProjects();
+            const activeIndices = activeProjects.map((p, i) => projects.indexOf(p));
+            return assignments.filter(a => activeIndices.includes(a.projectIndex));
+        }
+        
+        function getBillableTarget(resourceName) {
+            return billableTargets[resourceName] || billableTargets.default;
+        }
+        
+        function toggleProject(uniqueKey) {
+            const project = projects.find(p => p.uniqueKey === uniqueKey);
+            if (!project) return;
+            project.enabled = !project.enabled;
+            updateAll();
+        }
+        
+        function selectAllProjects() {
+            projects.forEach(p => p.enabled = true);
+            updateAll();
+        }
+        
+        function deselectAllProjects() {
+            projects.forEach(p => p.enabled = false);
+            updateAll();
+        }
+        
+        // LOGIN
+        let userRole = null;
+        function login() {
+            const role = document.getElementById('userRole').value;
+            const code = document.getElementById('accessCode').value;
+            if (!role) {
+                document.getElementById('loginError').style.display = 'block';
+                return;
+            }
+            if (role === 'team' || (role === 'pm' && code === 'RhPM$2025@Secure')) {
+                userRole = role;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainContainer').style.display = 'block';
+                if (role === 'team') {
+                    document.querySelectorAll('.tab').forEach(t => {
+                        if (!t.textContent.includes('My Calendar')) t.style.display = 'none';
+                    });
+                    switchTab('calendar');
+                }
+                populateCalResources();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+        
+        // CALENDAR
+        let calMonth = new Date();
+        const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#ffd89b', '#19547b'];
+        
+        function populateCalResources() {
+            const sel = document.getElementById('calResource');
+            if (!sel) return;
+            
+            // Clear existing options
+            sel.innerHTML = '';
+            
+            // Add default option
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = '-- Select Your Name --';
+            sel.appendChild(defaultOpt);
+            
+            // Get unique resource names
+            const names = new Set();
+            assignments.forEach(a => {
+                if (a.resourceName) {
+                    names.add(a.resourceName);
+                }
+            });
+            
+            // Add sorted names to dropdown
+            Array.from(names).sort().forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                sel.appendChild(opt);
+            });
+            
+            console.log(`✓ Calendar: Populated ${names.size} resources`);
+        }
+        
+        function renderCal() {
+            const name = document.getElementById('calResource').value;
+            const grid = document.getElementById('calGrid');
+            if (!name) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: #999;">Select your name</div>';
+                return;
+            }
+            
+            const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            document.getElementById('calMonthYear').textContent = monthNames[calMonth.getMonth()] + ' ' + calMonth.getFullYear();
+            
+            const year = calMonth.getFullYear();
+            const month = calMonth.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            let startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            grid.innerHTML = '';
+            ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+                const h = document.createElement('div');
+                h.className = 'cal-header';
+                h.textContent = d;
+                grid.appendChild(h);
+            });
+            
+            for (let i = 0; i < 42; i++) {
+                const curr = new Date(startDate);
+                curr.setDate(curr.getDate() + i);
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'cal-day';
+                if (curr.getMonth() !== month) dayDiv.classList.add('other-month');
+                if (curr.getTime() === today.getTime()) dayDiv.classList.add('today');
+                
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'cal-date';
+                dateDiv.textContent = curr.getDate();
+                dayDiv.appendChild(dateDiv);
+                
+                const dow = curr.getDay();
+                if (dow !== 0 && dow !== 6) {
+                    const allocs = getDayAllocs(name, curr);
+                    if (allocs.length > 0) {
+                        const total = allocs.reduce((sum, a) => sum + a.hours, 0);
+                        const hoursDiv = document.createElement('div');
+                        hoursDiv.className = 'cal-hours' + (total > 8 ? ' over' : '');
+                        hoursDiv.textContent = total.toFixed(1) + 'h';
+                        dayDiv.appendChild(hoursDiv);
+                        
+                        allocs.forEach((a, idx) => {
+                            const chip = document.createElement('div');
+                            chip.className = 'cal-project';
+                            chip.style.background = colors[a.projectIndex % colors.length];
+                            chip.textContent = projects[a.projectIndex].id + ' (' + a.hours.toFixed(1) + 'h)';
+                            chip.title = projects[a.projectIndex].name;
+                            dayDiv.appendChild(chip);
+                        });
+                    }
+                }
+                
+                grid.appendChild(dayDiv);
+            }
+        }
+        
+        function getDayAllocs(name, date) {
+            const allocs = [];
+            const year = date.getFullYear();
+            const isLeap = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+            
+            assignments.forEach(a => {
+                if (a.resourceName !== name) return;
+                
+                a.weeks = a.weeks || [];
+                for (let w = a.startWeek; w <= a.endWeek; w++) {
+                    if (!weeks[w]) continue;
+                    const [m, d] = weeks[w].date.split('-').map(Number);
+                    let weekStart = new Date(2026, m - 1, d);
+                    
+                    for (let day = 0; day < 7; day++) {
+                        const checkDate = new Date(weekStart);
+                        checkDate.setDate(checkDate.getDate() + day);
+                        const dow = checkDate.getDay();
+                        if (dow === 0 || dow === 6) continue;
+                        
+                        if (checkDate.getFullYear() === date.getFullYear() &&
+                            checkDate.getMonth() === date.getMonth() &&
+                            checkDate.getDate() === date.getDate()) {
+                            allocs.push({
+                                projectIndex: a.projectIndex,
+                                hours: a.hoursPerWeek / 5
+                            });
+                        }
+                    }
+                }
+            });
+            
+            return allocs;
+        }
+        
+        function changeCalMonth(delta) {
+            calMonth.setMonth(calMonth.getMonth() + delta);
+            renderCal();
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.target.classList.add('active');
+            if (tabName === 'whatif') renderWhatIf();
+            if (tabName === 'projects') renderProjects();
+            if (tabName === 'calendar') renderCal();
+        }
+        
+        function renderGantt() {
+            const mode = document.getElementById('gantt-mode').value;
+            const filteredWeeks = getFilteredWeeks();
+            const activeProjects = getActiveProjects();
+            const activeAssignments = getActiveAssignments();
+            
+            let legendHtml = '';
+            projects.forEach(p => {
+                const isEnabled = p.enabled;
+                legendHtml += `
+                    <div class="legend-item ${isEnabled ? '' : 'disabled'}" 
+                         onclick="toggleProject('${p.uniqueKey}')" 
+                         style="opacity: ${isEnabled ? 1 : 0.3}">
+                        <div class="legend-box" style="background: ${projectColors[p.uniqueKey]}"></div>
+                        <span>${p.id} - ${p.client}</span>
+                    </div>
+                `;
+            });
+            document.getElementById('gantt-legend').innerHTML = legendHtml;
+            
+            let periods = [];
+            if (mode === 'weekly') {
+                periods = filteredWeeks.map(w => ({ label: w.date, weeks: [w.num] }));
+            } else {
+                const months = [...new Set(filteredWeeks.map(w => w.month))];
+                periods = months.map(month => ({ label: month, weeks: filteredWeeks.filter(w => w.month === month).map(w => w.num) }));
+            }
+            
+            let html = '<thead><tr><th>Resource</th>';
+            periods.forEach(p => { html += `<th>${p.label}</th>`; });
+            html += '<th>Total / %</th></tr></thead><tbody>';
+            
+            resources.forEach(resource => {
+                const target = getBillableTarget(resource.name);
+                const targetHours = target * resource.capacity * filteredWeeks.length;
+                
+                html += '<tr>';
+                html += `<td><div class="resource-name">${resource.name}</div><div class="resource-target">Target: ${(target*100).toFixed(0)}%</div></td>`;
+                
+                let totalAllocated = 0;
+                periods.forEach(period => {
+                    const resourceAssignments = activeAssignments.filter(a => a.resourceName === resource.name);
+                    const projectHours = {};
+                    
+                    resourceAssignments.forEach(a => {
+                        const weeksInPeriod = period.weeks.filter(w => w >= a.startWeek && w <= a.endWeek).length;
+                        const hours = a.hoursPerWeek * weeksInPeriod;
+                        if (hours > 0) {
+                            const project = projects[a.projectIndex];
+                            if (project && project.enabled) {
+                                if (!projectHours[project.uniqueKey]) projectHours[project.uniqueKey] = 0;
+                                projectHours[project.uniqueKey] += hours;
+                                totalAllocated += hours;
+                            }
+                        }
+                    });
+                    
+                    html += '<td>';
+                    Object.entries(projectHours).forEach(([uniqueKey, hours]) => {
+                        const color = projectColors[uniqueKey] || '#94a3b8';
+                        html += `<div class="project-bar" style="background: ${color}">${hours}h</div>`;
+                    });
+                    html += '</td>';
+                });
+                
+                const pct = targetHours > 0 ? (totalAllocated / targetHours * 100) : 0;
+                const pctClass = pct >= 90 && pct <= 100 ? 'pct-green' : pct >= 70 ? 'pct-yellow' : 'pct-red';
+                
+                html += `<td><div class="total-cell">${totalAllocated.toFixed(0)}h<br><span class="pct-badge ${pctClass}">${pct.toFixed(0)}%</span></div></td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody>';
+            document.getElementById('gantt-table').innerHTML = html;
+        }
+        
+        function toggleResourceList(uniqueKey, event) {
+            event.stopPropagation();
+            const list = document.getElementById('resources-' + uniqueKey);
+            list.classList.toggle('expanded');
+        }
+        
+        function renderWhatIf() {
+            const filteredWeeks = getFilteredWeeks();
+            const heatmapMode = document.getElementById('heatmap-mode').value;
+            
+            // Project cards
+            let gridHtml = '';
+            projects.forEach(project => {
+                const isEnabled = project.enabled;
+                const colorDot = projectColors[project.uniqueKey] || '#94a3b8';
+                
+                const resourceList = Object.entries(project.resourceBreakdown || {})
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10);
+                
+                const totalResourceHours = resourceList.reduce((sum, [_, hours]) => sum + hours, 0);
+                
+                gridHtml += `
+                    <div class="project-card ${isEnabled ? '' : 'disabled'}">
+                        <div class="project-card-header" onclick="toggleProject('${project.uniqueKey}')">
+                            <input type="checkbox" 
+                                   ${isEnabled ? 'checked' : ''} 
+                                   onclick="event.stopPropagation(); toggleProject('${project.uniqueKey}');">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${colorDot}; flex-shrink: 0;"></div>
+                            <div class="project-info">
+                                <div class="project-title">${project.id} - ${project.client}</div>
+                                <div class="project-stats">
+                                    <div class="project-stat">💰 $${(project.revenue/1000).toFixed(0)}k</div>
+                                    <div class="project-stat">⏱️ ${project.totalHours}hrs</div>
+                                    <div class="project-stat">👥 ${project.resourceCount} resources</div>
+                                    <span class="status-badge status-${project.status.toLowerCase()}">${project.status}</span>
+                                </div>
+                            </div>
+                        </div>
+                        ${resourceList.length > 0 ? `
+                        <div class="resources-section">
+                            <div class="resources-header" onclick="toggleResourceList('${project.uniqueKey}', event)">
+                                <span class="resources-title">▶ Resource Breakdown</span>
+                            </div>
+                            <div id="resources-${project.uniqueKey}" class="resources-list">
+                                ${resourceList.map(([name, hours]) => {
+                                    const pct = totalResourceHours > 0 ? (hours / totalResourceHours * 100) : 0;
+                                    return `<div class="resource-item">
+                                        <span class="resource-name-small">${name}</span>
+                                        <span class="resource-hours">${hours.toFixed(0)}h (${pct.toFixed(0)}%)</span>
+                                    </div>`;
+                                }).join('')}
+                                ${project.resourceCount > 10 ? `<div style="font-size: 10px; color: #9ca3af; margin-top: 4px;">+ ${project.resourceCount - 10} more resources</div>` : ''}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            document.getElementById('project-grid').innerHTML = gridHtml;
+            
+            // Heat map with dynamic aggregation
+            const activeAssignments = getActiveAssignments();
+            let periods = [];
+            
+            if (heatmapMode === 'weekly') {
+                periods = filteredWeeks.map(w => ({ label: w.date, weeks: [w.num] }));
+            } else if (heatmapMode === 'monthly') {
+                const months = [...new Set(filteredWeeks.map(w => w.month))];
+                periods = months.map(month => ({ 
+                    label: month, 
+                    weeks: filteredWeeks.filter(w => w.month === month).map(w => w.num) 
+                }));
+            } else { // quarterly
+                const quarters = [...new Set(filteredWeeks.map(w => w.quarter))];
+                periods = quarters.map(quarter => ({ 
+                    label: quarter, 
+                    weeks: filteredWeeks.filter(w => w.quarter === quarter).map(w => w.num) 
+                }));
+            }
+            
+            let html = '<thead><tr><th>Resource</th>';
+            periods.forEach(p => { html += `<th>${p.label}</th>`; });
+            html += '</tr></thead><tbody>';
+            
+            resources.forEach(resource => {
+                const target = getBillableTarget(resource.name);
+                
+                html += '<tr><td>' + resource.name + '</td>';
+                
+                periods.forEach(period => {
+                    // Calculate total hours for this period
+                    let allocated = 0;
+                    period.weeks.forEach(weekNum => {
+                        const weekAssignments = activeAssignments.filter(a => 
+                            a.resourceName === resource.name &&
+                            weekNum >= a.startWeek && weekNum <= a.endWeek
+                        );
+                        allocated += weekAssignments.reduce((sum, a) => sum + a.hoursPerWeek, 0);
+                    });
+                    
+                    // Calculate target for this period
+                    const targetForPeriod = target * resource.capacity * period.weeks.length;
+                    const pct = targetForPeriod > 0 ? (allocated / targetForPeriod * 100) : 0;
+                    
+                    let heatClass = '';
+                    if (pct < 20) heatClass = 'heat-darkred';
+                    else if (pct < 50) heatClass = 'heat-lightred';
+                    else if (pct < 70) heatClass = 'heat-amber';
+                    else if (pct < 90) heatClass = 'heat-lightgreen';
+                    else if (pct <= 100) heatClass = 'heat-green';
+                    else heatClass = 'heat-darkgreen';
+                    
+                    html += `<td class="${heatClass}">${allocated}h</td>`;
+                });
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody>';
+            document.getElementById('heatmap-table').innerHTML = html;
+        }
+        
+        function renderProjects() {
+            let html = '';
+            let totalHours = 0;
+            let totalRevenue = 0;
+            
+            projects.forEach(project => {
+                if (project.enabled) {
+                    totalHours += project.totalHours;
+                    totalRevenue += project.revenue;
+                }
+                
+                html += `
+                    <tr style="opacity: ${project.enabled ? 1 : 0.5}">
+                        <td style="text-align: center;">
+                            <input type="checkbox" 
+                                   ${project.enabled ? 'checked' : ''} 
+                                   onchange="toggleProject('${project.uniqueKey}')" 
+                                   style="width: 18px; height: 18px; cursor: pointer;">
+                        </td>
+                        <td><span class="status-badge status-${project.status.toLowerCase()}">${project.status}</span></td>
+                        <td style="font-weight: 700;">${project.id}</td>
+                        <td>${project.client}</td>
+                        <td style="text-align: right; font-weight: 600;">${project.totalHours}</td>
+                        <td style="text-align: right; font-weight: 700; color: #10b981;">$${project.revenue.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('projects-tbody').innerHTML = html;
+            document.getElementById('total-hours').textContent = totalHours.toLocaleString();
+            document.getElementById('total-revenue').textContent = '$' + totalRevenue.toLocaleString();
+        }
+        
+        function updateAll() {
+            populateProjectSelector(); // Populate project dropdown when data changes
+            populateCalResources(); // Populate calendar resource dropdown
+            renderGantt();
+            const activeTab = document.querySelector('.view.active').id;
+            if (activeTab === 'tab-whatif') renderWhatIf();
+            if (activeTab === 'tab-projects') renderProjects();
+            if (activeTab === 'tab-project-detail') renderSelectedProject();
+        }
+        
+        // Excel Upload Function
+        async function uploadExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('loading-overlay').classList.add('active');
+            
+            try {
+                const reader = new FileReader();
+                
+                reader.onload = async function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Extract data from Excel
+                        const newProjects = extractProjectsFromExcel(workbook);
+                        const newResources = extractResourcesFromExcel(workbook);
+                        const newAssignments = extractAssignmentsFromExcel(workbook, newProjects);
+                        
+                        // Validation
+                        if (newProjects.length === 0) {
+                            throw new Error('No projects found in Project Tab. Check that revenue values exist.');
+                        }
+                        
+                        if (newResources.length === 0) {
+                            throw new Error('No resources found in Resource Tab.');
+                        }
+                        
+                        if (newAssignments.length === 0) {
+                            alert('⚠️ Warning: No project assignments found!\n\nThe Resource Tab shows resource totals but no project breakdowns.\n\nExpected format:\n- Resource Name\n- └─ Client - JobNo - Project Name\n- └─ Client - JobNo - Project Name\n\nCurrent format only shows totals.');
+                            throw new Error('No project assignments found. Resource Tab must include project breakdowns under each resource name.');
+                        }
+                        
+                        // Calculate resource breakdown
+                        calculateResourceBreakdown(newProjects, newAssignments);
+                        
+                        // Update global variables
+                        projects = newProjects;
+                        resources = newResources;
+                        assignments = newAssignments;
+                        
+                        // Update UI
+                        document.getElementById('data-source').textContent = 
+                            `Updated: ${new Date().toLocaleDateString()} from ${file.name}`;
+                        
+                        updateAll();
+                        
+                        alert(`✅ Success! Loaded ${projects.length} projects, ${resources.length} resources, ${assignments.length} assignments`);
+                    } catch (error) {
+                        console.error('Error processing file:', error);
+                        alert('❌ Error processing Excel file: ' + error.message);
+                    } finally {
+                        document.getElementById('loading-overlay').classList.remove('active');
+                        event.target.value = ''; // Reset file input
+                    }
+                };
+                
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error('Error reading file:', error);
+                alert('❌ Error reading file: ' + error.message);
+                document.getElementById('loading-overlay').classList.remove('active');
+            }
+        }
+        
+        function extractProjectsFromExcel(workbook) {
+            const sheet = workbook.Sheets['Project Tab'];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            
+            const newProjects = [];
+            let currentClient = null;
+            let projectIndex = 0;
+            
+            for (let i = 5; i < data.length; i++) {
+                const row = data[i];
+                const rowLabel = row[0];
+                const jobNo = row[1];
+                const jobName = row[2];
+                const totalHours = row[165];
+                const totalRevenue = row[168];
+                
+                if (rowLabel && !String(rowLabel).includes('Total')) {
+                    currentClient = rowLabel;
+                }
+                
+                if (jobNo && !String(rowLabel || '').includes('Total')) {
+                    const revenue = parseFloat(totalRevenue) || 0;
+                    
+                    if (revenue === 0) continue;
+                    
+                    const hours = parseFloat(totalHours) || 0;
+                    const status = (currentClient && (currentClient.includes('RSL') || currentClient.includes('Endeavour'))) 
+                        ? 'Qualified' : 'Won';
+                    
+                    newProjects.push({
+                        id: jobNo,
+                        name: jobName,
+                        client: currentClient || 'Unknown',
+                        totalHours: Math.round(hours),
+                        revenue: Math.round(revenue),
+                        status: status,
+                        fullName: `${currentClient} - ${jobNo} - ${jobName}`,
+                        uniqueKey: `project_${projectIndex}`,
+                        enabled: true
+                    });
+                    projectIndex++;
+                }
+            }
+            
+            return newProjects;
+        }
+        
+        function extractResourcesFromExcel(workbook) {
+            const sheet = workbook.Sheets['Resource Tab'];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            
+            const newResources = [];
+            const resourceNames = new Set();
+            
+            for (let i = 7; i < data.length; i++) {
+                const resourceName = String(data[i][1] || '').trim();
+                
+                if (!resourceName || resourceName.includes('Total')) continue;
+                
+                const isResource = !resourceName.includes('|') && !resourceName.includes(' - ');
+                
+                if (isResource && !resourceNames.has(resourceName)) {
+                    resourceNames.add(resourceName);
+                    newResources.push({
+                        name: resourceName,
+                        rate: 264,
+                        capacity: resourceName.includes('Renee') ? 20 : 40
+                    });
+                }
+            }
+            
+            return newResources;
+        }
+        
+        function extractAssignmentsFromExcel(workbook, projects) {
+            const sheet = workbook.Sheets['Resource Tab'];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            
+            const newAssignments = [];
+            let currentResource = null;
+            
+            // Create project patterns
+            const projectPatterns = {};
+            projects.forEach((proj, idx) => {
+                const pattern = `${proj.client} - ${proj.id} -`;
+                projectPatterns[pattern] = idx;
+            });
+            
+            console.log('=== ASSIGNMENT EXTRACTION DEBUG ===');
+            console.log('Project patterns:', Object.keys(projectPatterns));
+            
+            for (let i = 7; i < data.length; i++) {
+                const cellValue = String(data[i][1] || '').trim();
+                
+                if (!cellValue || cellValue.includes('Total')) continue;
+                
+                const isResource = !cellValue.includes('|') && !cellValue.includes(' - ');
+                
+                if (isResource) {
+                    currentResource = cellValue;
+                    console.log(`Found resource: ${currentResource}`);
+                } else if (currentResource) {
+                    // Match project
+                    console.log(`  Checking project line: ${cellValue.substring(0, 60)}`);
+                    
+                    let matchedIdx = null;
+                    for (const [pattern, idx] of Object.entries(projectPatterns)) {
+                        if (cellValue.includes(pattern)) {
+                            matchedIdx = idx;
+                            console.log(`    ✓ Matched project: ${projects[idx].fullName}`);
+                            break;
+                        }
+                    }
+                    
+                    if (matchedIdx === null) {
+                        console.log(`    ✗ No match found`);
+                        continue;
+                    }
+                    
+                    // Extract weekly hours (columns 2, 4, 6, 8... are Forecast)
+                    const weeklyHours = [];
+                    for (let w = 0; w < 27; w++) {
+                        const col = 2 + (w * 2);
+                        const hours = parseFloat(data[i][col]) || 0;
+                        weeklyHours.push(hours);
+                    }
+                    
+                    // Create assignments
+                    let currentAssignment = null;
+                    for (let weekIdx = 0; weekIdx < weeklyHours.length; weekIdx++) {
+                        const hours = weeklyHours[weekIdx];
+                        
+                        if (hours > 0) {
+                            if (!currentAssignment) {
+                                currentAssignment = {
+                                    resourceName: currentResource,
+                                    projectId: projects[matchedIdx].id,
+                                    projectIndex: matchedIdx,
+                                    hoursPerWeek: hours,
+                                    startWeek: weekIdx,
+                                    endWeek: weekIdx
+                                };
+                            } else {
+                                if (hours === currentAssignment.hoursPerWeek) {
+                                    currentAssignment.endWeek = weekIdx;
+                                } else {
+                                    newAssignments.push({...currentAssignment});
+                                    currentAssignment = {
+                                        resourceName: currentResource,
+                                        projectId: projects[matchedIdx].id,
+                                        projectIndex: matchedIdx,
+                                        hoursPerWeek: hours,
+                                        startWeek: weekIdx,
+                                        endWeek: weekIdx
+                                    };
+                                }
+                            }
+                        } else {
+                            if (currentAssignment) {
+                                newAssignments.push({...currentAssignment});
+                                currentAssignment = null;
+                            }
+                        }
+                    }
+                    
+                    if (currentAssignment) {
+                        newAssignments.push({...currentAssignment});
+                    }
+                }
+            }
+            
+            console.log(`=== EXTRACTION COMPLETE ===`);
+            console.log(`Total assignments created: ${newAssignments.length}`);
+            
+            return newAssignments;
+        }
+        
+        function calculateResourceBreakdown(projects, assignments) {
+            projects.forEach((project, i) => {
+                const projectAssignments = assignments.filter(a => a.projectIndex === i);
+                
+                const breakdown = {};
+                projectAssignments.forEach(a => {
+                    if (!breakdown[a.resourceName]) breakdown[a.resourceName] = 0;
+                    const weeks = (a.endWeek - a.startWeek + 1);
+                    breakdown[a.resourceName] += a.hoursPerWeek * weeks;
+                });
+                
+                project.resourceBreakdown = breakdown;
+                project.resourceCount = Object.keys(breakdown).length;
+            });
+        }
+        
+        // ========== PROJECT DETAILS VIEW FUNCTIONS ==========
+        
+        function populateProjectSelector() {
+            const selector = document.getElementById('project-selector');
+            
+            let html = '<option value="">-- Choose a project --</option>';
+            projects.forEach((project, index) => {
+                html += `<option value="${index}">${project.id} - ${project.name}</option>`;
+            });
+            
+            selector.innerHTML = html;
+        }
+        
+        function renderSelectedProject() {
+            const selector = document.getElementById('project-selector');
+            const projectIndex = parseInt(selector.value);
+            const contentDiv = document.getElementById('project-detail-content');
+            
+            if (isNaN(projectIndex)) {
+                contentDiv.innerHTML = '<div style="text-align: center; padding: 60px; color: #9ca3af; font-size: 16px;">Please select a project to view details</div>';
+                return;
+            }
+            
+            const project = projects[projectIndex];
+            const projectAssignments = assignments.filter(a => a.projectIndex === projectIndex);
+            
+            // Get date range from project assignments
+            const allWeeks = projectAssignments.flatMap(a => {
+                const weeks = [];
+                for (let w = a.startWeek; w <= a.endWeek; w++) {
+                    weeks.push(w);
+                }
+                return weeks;
+            });
+            const minWeek = Math.min(...allWeeks);
+            const maxWeek = Math.max(...allWeeks);
+            
+            const startDate = getDateFromWeek(minWeek);
+            const endDate = getDateFromWeek(maxWeek);
+            
+            // Calculate total hours
+            const totalHours = projectAssignments.reduce((sum, a) => {
+                const weekCount = a.endWeek - a.startWeek + 1;
+                return sum + (a.hoursPerWeek * weekCount);
+            }, 0);
+            
+            // Group assignments by resource
+            const resourceData = {};
+            projectAssignments.forEach(a => {
+                if (!resourceData[a.resourceName]) {
+                    resourceData[a.resourceName] = [];
+                }
+                resourceData[a.resourceName].push(a);
+            });
+            
+            contentDiv.innerHTML = `
+                <div class="export-buttons">
+                    <button class="export-btn" onclick="printProjectDetail()">🖨️ Print for PM</button>
+                    <button class="export-btn" onclick="copyProjectDetail()">📋 Copy to Clipboard</button>
+                </div>
+                
+                <div class="project-view-header">
+                    <div class="project-view-title">${project.name}</div>
+                    <div class="project-view-subtitle">${project.client} | ${project.status}</div>
+                </div>
+                
+                <div class="project-stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Hours</div>
+                        <div class="stat-value">${totalHours.toFixed(0)}h</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Revenue</div>
+                        <div class="stat-value">$${project.revenue.toLocaleString()}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Resources</div>
+                        <div class="stat-value">${Object.keys(resourceData).length}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Duration</div>
+                        <div class="stat-value">${formatDate(startDate)} - ${formatDate(endDate)}</div>
+                    </div>
+                </div>
+                
+                <div class="date-range-selector">
+                    <label>📅 Select Date Range for Detailed View</label>
+                    <div class="date-inputs">
+                        <input type="date" id="start-date-input" value="${startDate}" min="2026-01-02" max="2026-07-03">
+                        <span>to</span>
+                        <input type="date" id="end-date-input" value="${endDate}" min="2026-01-02" max="2026-07-03">
+                        <button onclick="updateProjectDateRange()">Update View</button>
+                    </div>
+                </div>
+                
+                <div id="resource-allocation-list" class="resource-allocation-list">
+                    ${renderResourceAllocations(projectIndex, startDate, endDate, resourceData)}
+                </div>
+            `;
+        }
+        
+        function getDateFromWeek(weekNum) {
+            const weekData = weeks[weekNum];
+            if (!weekData) return '2026-01-02';
+            const [month, day] = weekData.date.split('-').map(Number);
+            return `2026-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+        
+        function getWeekFromDate(dateStr) {
+            const date = new Date(dateStr);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const dateKey = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            
+            // Find closest week
+            for (let i = 0; i < weeks.length; i++) {
+                if (weeks[i].date === dateKey) return i;
+            }
+            
+            // Find closest week if exact match not found
+            let closestWeek = 0;
+            let minDiff = Infinity;
+            weeks.forEach((w, i) => {
+                const [wMonth, wDay] = w.date.split('-').map(Number);
+                const wDate = new Date(2026, wMonth - 1, wDay);
+                const diff = Math.abs(date - wDate);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestWeek = i;
+                }
+            });
+            return closestWeek;
+        }
+        
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+            return `${months[date.getMonth()]} ${date.getDate()}`;
+        }
+        
+        function renderResourceAllocations(projectIndex, startDateStr, endDateStr, resourceData) {
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+            
+            let html = '';
+            
+            Object.entries(resourceData).forEach(([resourceName, assignmentsList]) => {
+                let totalResourceHours = 0;
+                const dailyHours = [];
+                
+                // Iterate through each day in the range
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    const dayOfWeek = d.getDay();
+                    // Skip weekends (0 = Sunday, 6 = Saturday)
+                    if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+                    
+                    const dateStr = d.toISOString().split('T')[0];
+                    const weekNum = getWeekFromDate(dateStr);
+                    
+                    // Check if any assignment covers this date
+                    let hoursForDay = 0;
+                    assignmentsList.forEach(assignment => {
+                        if (weekNum >= assignment.startWeek && weekNum <= assignment.endWeek) {
+                            hoursForDay = assignment.hoursPerWeek / 5; // Distribute weekly hours over 5 days
+                        }
+                    });
+                    
+                    if (hoursForDay > 0) {
+                        dailyHours.push({
+                            date: new Date(d),
+                            hours: hoursForDay
+                        });
+                        totalResourceHours += hoursForDay;
+                    }
+                }
+                
+                if (dailyHours.length === 0) return; // Skip resources with no hours in this range
+                
+                // Generate HTML
+                html += `
+                    <div class="allocation-item">
+                        <div class="allocation-header">
+                            <div class="resource-name-large">${resourceName}</div>
+                            <div class="resource-total-hours">${totalResourceHours.toFixed(0)}h total</div>
+                        </div>
+                        <div class="daily-breakdown">
+                `;
+                
+                dailyHours.forEach(({date, hours}) => {
+                    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+                    const dateLabel = `${days[date.getDay()]} ${months[date.getMonth()]} ${date.getDate()}`;
+                    
+                    html += `
+                        <div class="day-item">
+                            <div class="day-date">${dateLabel}</div>
+                            <div class="day-hours">${hours.toFixed(1)}h</div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            return html || '<div style="text-align: center; padding: 40px; color: #9ca3af;">No resource allocations in this date range</div>';
+        }
+        
+        function updateProjectDateRange() {
+            const selector = document.getElementById('project-selector');
+            const projectIndex = parseInt(selector.value);
+            
+            if (isNaN(projectIndex)) return;
+            
+            const startDate = document.getElementById('start-date-input').value;
+            const endDate = document.getElementById('end-date-input').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates.');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('Start date must be before or equal to end date.');
+                return;
+            }
+            
+            const project = projects[projectIndex];
+            const projectAssignments = assignments.filter(a => a.projectIndex === projectIndex);
+            
+            const resourceData = {};
+            projectAssignments.forEach(a => {
+                if (!resourceData[a.resourceName]) {
+                    resourceData[a.resourceName] = [];
+                }
+                resourceData[a.resourceName].push(a);
+            });
+            
+            document.getElementById('resource-allocation-list').innerHTML = 
+                renderResourceAllocations(projectIndex, startDate, endDate, resourceData);
+        }
+        
+        function printProjectDetail() {
+            window.print();
+        }
+        
+        function copyProjectDetail() {
+            const selector = document.getElementById('project-selector');
+            const projectIndex = parseInt(selector.value);
+            
+            if (isNaN(projectIndex)) return;
+            
+            const project = projects[projectIndex];
+            const startDate = document.getElementById('start-date-input').value;
+            const endDate = document.getElementById('end-date-input').value;
+            
+            // Create text version
+            let text = `PROJECT: ${project.name}\n`;
+            text += `CLIENT: ${project.client}\n`;
+            text += `STATUS: ${project.status}\n`;
+            text += `REVENUE: $${project.revenue.toLocaleString()}\n`;
+            text += `DATE RANGE: ${formatDate(startDate)} - ${formatDate(endDate)}\n`;
+            text += `\n--- RESOURCE ALLOCATIONS ---\n\n`;
+            
+            const projectAssignments = assignments.filter(a => a.projectIndex === projectIndex);
+            const resourceData = {};
+            projectAssignments.forEach(a => {
+                if (!resourceData[a.resourceName]) resourceData[a.resourceName] = [];
+                resourceData[a.resourceName].push(a);
+            });
+            
+            Object.entries(resourceData).forEach(([resourceName, assignmentsList]) => {
+                let totalHours = 0;
+                const startDateObj = new Date(startDate);
+                const endDateObj = new Date(endDate);
+                
+                for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
+                    const dayOfWeek = d.getDay();
+                    if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+                    
+                    const weekNum = getWeekFromDate(d.toISOString().split('T')[0]);
+                    assignmentsList.forEach(assignment => {
+                        if (weekNum >= assignment.startWeek && weekNum <= assignment.endWeek) {
+                            totalHours += assignment.hoursPerWeek / 5;
+                        }
+                    });
+                }
+                
+                if (totalHours > 0) {
+                    text += `${resourceName}: ${totalHours.toFixed(0)} hours\n`;
+                }
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Project details copied to clipboard!');
+            });
+        }
+        
+        // Update the existing switchTab function to handle project detail
+        const originalSwitchTab = switchTab;
+        switchTab = function(tabName) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            
+            const viewElement = document.getElementById('tab-' + tabName);
+            if (viewElement) {
+                viewElement.classList.add('active');
+                event.target.classList.add('active');
+                
+                if (tabName === 'project-detail') {
+                    renderSelectedProject();
+                } else if (tabName === 'whatif') {
+                    renderWhatIf();
+                } else if (tabName === 'projects') {
+                    renderProjects();
+                }
+            }
+        };
+        
+        // === GITHUB AUTO-LOAD FUNCTIONS ===
+        async function loadFromGitHub() {
+            if (!GITHUB_CONFIG.enabled) return false;
+            
+            try {
+                console.log('🔄 Checking GitHub for updates...');
+                const response = await fetch(GITHUB_CONFIG.dataUrl + '?t=' + Date.now());
+                
+                if (!response.ok) {
+                    console.log('⚠️ GitHub data not available, using embedded data');
+                    return false;
+                }
+                
+                const data = await response.json();
+                const dataHash = JSON.stringify(data).length;
+                
+                if (GITHUB_CONFIG.lastDataHash === dataHash) {
+                    console.log('✓ Data unchanged, no update needed');
+                    return false;
+                }
+                
+                // Update dashboard data
+                projects = data.projects || [];
+                resources = data.resources || [];
+                assignments = data.assignments || [];
+                if (data.weeks) weeks = data.weeks;
+                
+                GITHUB_CONFIG.lastUpdate = new Date();
+                GITHUB_CONFIG.lastDataHash = dataHash;
+                
+                updateAll();
+                updateDataSourceDisplay();
+                
+                // Show success notification
+                showGitHubNotification(`✅ Updated from GitHub: ${data.exportDate ? new Date(data.exportDate).toLocaleString() : 'now'}`, 'success');
+                
+                console.log(`✅ Loaded from GitHub: ${projects.length} projects, ${resources.length} resources, ${assignments.length} assignments`);
+                return true;
+                
+            } catch (error) {
+                console.error('❌ Error loading from GitHub:', error);
+                return false;
+            }
+        }
+        
+        function exportToJSON() {
+            const exportData = {
+                projects: projects,
+                resources: resources,
+                assignments: assignments,
+                weeks: weeks,
+                exportDate: new Date().toISOString(),
+                exportedBy: 'Dashboard Export',
+                version: '1.0'
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'Portfolio-data.json';
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            showGitHubNotification('✅ Exported to Portfolio-data.json', 'success');
+            
+            setTimeout(() => {
+                if (confirm('📤 Portfolio-data.json downloaded!\n\nNext step: Upload this file to your GitHub repository.\n\nClick OK to see upload instructions.')) {
+                    alert('Upload to GitHub:\n\n1. Go to: https://github.com/Kaabia79/Resource-Dashboard\n2. Click "Add file" → "Upload files"\n3. Drag Portfolio-data.json\n4. Commit changes\n5. Team members will see update within 5 minutes!');
+                }
+            }, 500);
+        }
+        
+        function manualRefresh() {
+            showGitHubNotification('🔄 Checking for updates...', 'info');
+            loadFromGitHub().then(updated => {
+                if (!updated) {
+                    showGitHubNotification('ℹ️ Already up to date - no changes found', 'info');
+                }
+            });
+        }
+        
+        function updateDataSourceDisplay() {
+            const dataSourceEl = document.getElementById('data-source');
+            if (dataSourceEl && GITHUB_CONFIG.lastUpdate) {
+                const timeStr = GITHUB_CONFIG.lastUpdate.toLocaleTimeString();
+                dataSourceEl.textContent = `GitHub: ${timeStr}`;
+            }
+        }
+        
+        function showGitHubNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${bgColor};
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-weight: 600;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+        
+        function startAutoRefresh() {
+            // Load immediately on start (after 2 seconds)
+            setTimeout(() => {
+                loadFromGitHub();
+            }, 2000);
+            
+            // Then check every interval
+            setInterval(() => {
+                loadFromGitHub();
+            }, GITHUB_CONFIG.refreshInterval);
+            
+            console.log(`🔄 Auto-refresh enabled: checking every ${GITHUB_CONFIG.refreshInterval / 60000} minutes`);
+        }
+        
+        window.onload = function() {
+            console.log('✅ Enhanced Dashboard loaded with Project Details View');
+            console.log('  - Upload capability enabled');
+            console.log('  - Heat map adjusts by view');
+            console.log('  - Project details with date range selector');
+            console.log('  - GitHub auto-load enabled');
+            populateProjectSelector();
+            updateAll();
+            
+            // Start GitHub auto-refresh
+            if (GITHUB_CONFIG.enabled) {
+                startAutoRefresh();
+                updateDataSourceDisplay();
+            }
+        };
+    </script>
+</body>
+</html>
