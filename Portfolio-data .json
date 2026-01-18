@@ -34,8 +34,8 @@
       "id": "J000352",
       "name": "J000352  - CatholicCare | Horizon Implementation",
       "client": "CatholicCare Sydney Limited",
-      "totalHours": 2428,
-      "revenue": 587830,
+      "totalHours": 2500,
+      "revenue": 604030,
       "status": "Won",
       "fullName": "CatholicCare Sydney Limited - J000352 - J000352  - CatholicCare | Horizon Implementation",
       "uniqueKey": "project_2",
@@ -43,24 +43,25 @@
       "resourceBreakdown": {
         "Barbara": 64,
         "Brett": 904,
+        "Kaman": 96,
         "Renee": 172,
         "Pamela": 520,
-        "Belinda": 768
+        "Belinda": 744
       },
-      "resourceCount": 5
+      "resourceCount": 6
     },
     {
       "id": "CCS001",
       "name": "CCS001 CatholicCare | Project Horizon Implementation",
       "client": "CatholicCare Sydney Limited",
-      "totalHours": 16,
-      "revenue": 4220,
+      "totalHours": 8,
+      "revenue": 2110,
       "status": "Won",
       "fullName": "CatholicCare Sydney Limited - CCS001 - CCS001 CatholicCare | Project Horizon Implementation",
       "uniqueKey": "project_3",
       "enabled": true,
       "resourceBreakdown": {
-        "Brett": 16
+        "Brett": 8
       },
       "resourceCount": 1
     },
@@ -68,17 +69,17 @@
       "id": "F000001",
       "name": "F000001 - RSL Lifecare | CRM, Billing & Integration Solution Assessment",
       "client": "RSL Life Care",
-      "totalHours": 260,
-      "revenue": 63850,
+      "totalHours": 470,
+      "revenue": 113850,
       "status": "Qualified",
       "fullName": "RSL Life Care - F000001 - F000001 - RSL Lifecare | CRM, Billing & Integration Solution Assessment",
       "uniqueKey": "project_4",
       "enabled": true,
       "resourceBreakdown": {
-        "Barbara": 64,
-        "Kal": 60,
-        "Kevin": 64,
-        "Renee": 56,
+        "Allanah": 120,
+        "Barbara": 162,
+        "Kal": 162,
+        "Kevin": 10,
         "Ali": 16
       },
       "resourceCount": 5
@@ -87,17 +88,17 @@
       "id": "F000002",
       "name": "F000002 - RSL Lifecare | Modernising Clinical System Assessment",
       "client": "RSL Life Care",
-      "totalHours": 232,
-      "revenue": 57500,
+      "totalHours": 250,
+      "revenue": 61275,
       "status": "Qualified",
       "fullName": "RSL Life Care - F000002 - F000002 - RSL Lifecare | Modernising Clinical System Assessment",
       "uniqueKey": "project_5",
       "enabled": true,
       "resourceBreakdown": {
-        "Barbara": 56,
-        "Kal": 16,
-        "Kevin": 80,
-        "Renee": 64,
+        "Allanah": 64,
+        "Barbara": 80,
+        "Kal": 50,
+        "Kevin": 40,
         "Ali": 16
       },
       "resourceCount": 5
@@ -106,22 +107,21 @@
       "id": "F000001",
       "name": "F000001- Uniting | Billing Solution Build & Deploy",
       "client": "Uniting (NSW.ACT)",
-      "totalHours": 3112,
-      "revenue": 772900,
+      "totalHours": 2896,
+      "revenue": 711800,
       "status": "Won",
       "fullName": "Uniting (NSW.ACT) - F000001 - F000001- Uniting | Billing Solution Build & Deploy",
       "uniqueKey": "project_6",
       "enabled": true,
       "resourceBreakdown": {
-        "Gerard": 312,
-        "Kevin": 72,
-        "Sharon": 816,
-        "Jack": 472,
-        "Jennifer": 816,
-        "Bagus": 312,
-        "Siva": 312
+        "Gerard": 648,
+        "Kevin": 152,
+        "Jack": 312,
+        "Jennifer": 488,
+        "Bagus": 648,
+        "Siva": 648
       },
-      "resourceCount": 7
+      "resourceCount": 6
     },
     {
       "id": "F000001",
@@ -141,6 +141,21 @@
         "Pamela": 44
       },
       "resourceCount": 5
+    },
+    {
+      "id": "F000001",
+      "name": "F000001 - Disability Trust | Site Staff and Rostering Survey",
+      "client": "Disability Trust",
+      "totalHours": 64,
+      "revenue": 14400,
+      "status": "Won",
+      "fullName": "Disability Trust - F000001 - F000001 - Disability Trust | Site Staff and Rostering Survey",
+      "uniqueKey": "project_8",
+      "enabled": true,
+      "resourceBreakdown": {
+        "Belinda": 64
+      },
+      "resourceCount": 1
     }
   ],
   "resources": [
@@ -165,6 +180,11 @@
       "capacity": 40
     },
     {
+      "name": "Ian",
+      "rate": 264,
+      "capacity": 40
+    },
+    {
       "name": "Jayson",
       "rate": 264,
       "capacity": 40
@@ -175,12 +195,12 @@
       "capacity": 40
     },
     {
-      "name": "Kevin",
+      "name": "Kaman",
       "rate": 264,
       "capacity": 40
     },
     {
-      "name": "Sharon",
+      "name": "Kevin",
       "rate": 264,
       "capacity": 40
     },
@@ -240,6 +260,110 @@
       "endWeek": 26
     },
     {
+      "resourceName": "Allanah",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 12,
+      "startWeek": 5,
+      "endWeek": 5
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 16,
+      "startWeek": 6,
+      "endWeek": 6
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 12,
+      "startWeek": 7,
+      "endWeek": 8
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 24,
+      "startWeek": 9,
+      "endWeek": 9
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 20,
+      "startWeek": 10,
+      "endWeek": 10
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 16,
+      "startWeek": 11,
+      "endWeek": 11
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 8,
+      "startWeek": 12,
+      "endWeek": 12
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 8,
+      "startWeek": 4,
+      "endWeek": 4
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 10,
+      "startWeek": 5,
+      "endWeek": 5
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 8,
+      "startWeek": 6,
+      "endWeek": 7
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 10,
+      "startWeek": 8,
+      "endWeek": 8
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 12,
+      "startWeek": 9,
+      "endWeek": 9
+    },
+    {
+      "resourceName": "Allanah",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 8,
+      "startWeek": 10,
+      "endWeek": 10
+    },
+    {
       "resourceName": "Barbara",
       "projectId": "J000352",
       "projectIndex": 2,
@@ -259,8 +383,96 @@
       "resourceName": "Barbara",
       "projectId": "F000001",
       "projectIndex": 4,
+      "hoursPerWeek": 24,
+      "startWeek": 5,
+      "endWeek": 5
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 20,
+      "startWeek": 6,
+      "endWeek": 6
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 24,
+      "startWeek": 7,
+      "endWeek": 8
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 34,
+      "startWeek": 9,
+      "endWeek": 9
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 16,
+      "startWeek": 10,
+      "endWeek": 10
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 12,
+      "startWeek": 11,
+      "endWeek": 11
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000001",
+      "projectIndex": 4,
       "hoursPerWeek": 8,
-      "startWeek": 1,
+      "startWeek": 12,
+      "endWeek": 12
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 12,
+      "startWeek": 3,
+      "endWeek": 3
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 8,
+      "startWeek": 4,
+      "endWeek": 4
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 12,
+      "startWeek": 5,
+      "endWeek": 6
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 8,
+      "startWeek": 7,
+      "endWeek": 7
+    },
+    {
+      "resourceName": "Barbara",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 12,
+      "startWeek": 8,
       "endWeek": 8
     },
     {
@@ -268,32 +480,8 @@
       "projectId": "F000002",
       "projectIndex": 5,
       "hoursPerWeek": 8,
-      "startWeek": 1,
-      "endWeek": 4
-    },
-    {
-      "resourceName": "Barbara",
-      "projectId": "F000002",
-      "projectIndex": 5,
-      "hoursPerWeek": 4,
-      "startWeek": 5,
-      "endWeek": 5
-    },
-    {
-      "resourceName": "Barbara",
-      "projectId": "F000002",
-      "projectIndex": 5,
-      "hoursPerWeek": 8,
-      "startWeek": 6,
-      "endWeek": 6
-    },
-    {
-      "resourceName": "Barbara",
-      "projectId": "F000002",
-      "projectIndex": 5,
-      "hoursPerWeek": 4,
-      "startWeek": 7,
-      "endWeek": 9
+      "startWeek": 9,
+      "endWeek": 10
     },
     {
       "resourceName": "Brett",
@@ -376,14 +564,6 @@
       "endWeek": 0
     },
     {
-      "resourceName": "Brett",
-      "projectId": "CCS001",
-      "projectIndex": 3,
-      "hoursPerWeek": 8,
-      "startWeek": 4,
-      "endWeek": 4
-    },
-    {
       "resourceName": "Gerard",
       "projectId": "F000001",
       "projectIndex": 6,
@@ -405,7 +585,31 @@
       "projectIndex": 6,
       "hoursPerWeek": 40,
       "startWeek": 5,
-      "endWeek": 8
+      "endWeek": 13
+    },
+    {
+      "resourceName": "Gerard",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 32,
+      "startWeek": 14,
+      "endWeek": 14
+    },
+    {
+      "resourceName": "Gerard",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 40,
+      "startWeek": 15,
+      "endWeek": 16
+    },
+    {
+      "resourceName": "Gerard",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 24,
+      "startWeek": 17,
+      "endWeek": 17
     },
     {
       "resourceName": "Jayson",
@@ -427,33 +631,89 @@
       "resourceName": "Kal",
       "projectId": "F000001",
       "projectIndex": 4,
-      "hoursPerWeek": 4,
-      "startWeek": 1,
-      "endWeek": 1
+      "hoursPerWeek": 20,
+      "startWeek": 5,
+      "endWeek": 6
+    },
+    {
+      "resourceName": "Kal",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 24,
+      "startWeek": 7,
+      "endWeek": 8
+    },
+    {
+      "resourceName": "Kal",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 30,
+      "startWeek": 9,
+      "endWeek": 9
+    },
+    {
+      "resourceName": "Kal",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 24,
+      "startWeek": 10,
+      "endWeek": 10
+    },
+    {
+      "resourceName": "Kal",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 12,
+      "startWeek": 11,
+      "endWeek": 11
     },
     {
       "resourceName": "Kal",
       "projectId": "F000001",
       "projectIndex": 4,
       "hoursPerWeek": 8,
-      "startWeek": 2,
+      "startWeek": 12,
+      "endWeek": 12
+    },
+    {
+      "resourceName": "Kal",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 8,
+      "startWeek": 3,
+      "endWeek": 4
+    },
+    {
+      "resourceName": "Kal",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 10,
+      "startWeek": 5,
+      "endWeek": 5
+    },
+    {
+      "resourceName": "Kal",
+      "projectId": "F000002",
+      "projectIndex": 5,
+      "hoursPerWeek": 8,
+      "startWeek": 6,
       "endWeek": 8
     },
     {
-      "resourceName": "Kal",
-      "projectId": "F000002",
-      "projectIndex": 5,
-      "hoursPerWeek": 4,
+      "resourceName": "Kaman",
+      "projectId": "J000352",
+      "projectIndex": 2,
+      "hoursPerWeek": 40,
       "startWeek": 1,
-      "endWeek": 3
+      "endWeek": 2
     },
     {
-      "resourceName": "Kal",
-      "projectId": "F000002",
-      "projectIndex": 5,
-      "hoursPerWeek": 4,
-      "startWeek": 5,
-      "endWeek": 5
+      "resourceName": "Kaman",
+      "projectId": "J000352",
+      "projectIndex": 2,
+      "hoursPerWeek": 16,
+      "startWeek": 3,
+      "endWeek": 3
     },
     {
       "resourceName": "Kevin",
@@ -467,33 +727,33 @@
       "resourceName": "Kevin",
       "projectId": "F000001",
       "projectIndex": 4,
-      "hoursPerWeek": 16,
-      "startWeek": 5,
-      "endWeek": 8
+      "hoursPerWeek": 2,
+      "startWeek": 11,
+      "endWeek": 11
+    },
+    {
+      "resourceName": "Kevin",
+      "projectId": "F000001",
+      "projectIndex": 4,
+      "hoursPerWeek": 8,
+      "startWeek": 12,
+      "endWeek": 12
     },
     {
       "resourceName": "Kevin",
       "projectId": "F000002",
       "projectIndex": 5,
       "hoursPerWeek": 16,
-      "startWeek": 5,
-      "endWeek": 7
+      "startWeek": 9,
+      "endWeek": 9
     },
     {
       "resourceName": "Kevin",
       "projectId": "F000002",
       "projectIndex": 5,
       "hoursPerWeek": 24,
-      "startWeek": 8,
-      "endWeek": 8
-    },
-    {
-      "resourceName": "Kevin",
-      "projectId": "F000002",
-      "projectIndex": 5,
-      "hoursPerWeek": 8,
-      "startWeek": 9,
-      "endWeek": 9
+      "startWeek": 10,
+      "endWeek": 10
     },
     {
       "resourceName": "Kevin",
@@ -512,60 +772,12 @@
       "endWeek": 4
     },
     {
-      "resourceName": "Sharon",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 40,
-      "startWeek": 1,
-      "endWeek": 3
-    },
-    {
-      "resourceName": "Sharon",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 32,
-      "startWeek": 4,
-      "endWeek": 4
-    },
-    {
-      "resourceName": "Sharon",
+      "resourceName": "Kevin",
       "projectId": "F000001",
       "projectIndex": 6,
       "hoursPerWeek": 40,
       "startWeek": 5,
-      "endWeek": 13
-    },
-    {
-      "resourceName": "Sharon",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 32,
-      "startWeek": 14,
-      "endWeek": 14
-    },
-    {
-      "resourceName": "Sharon",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 40,
-      "startWeek": 15,
-      "endWeek": 16
-    },
-    {
-      "resourceName": "Sharon",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 32,
-      "startWeek": 17,
-      "endWeek": 17
-    },
-    {
-      "resourceName": "Sharon",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 40,
-      "startWeek": 18,
-      "endWeek": 21
+      "endWeek": 6
     },
     {
       "resourceName": "Jack",
@@ -593,6 +805,46 @@
     },
     {
       "resourceName": "Jack",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 40,
+      "startWeek": 5,
+      "endWeek": 8
+    },
+    {
+      "resourceName": "Renee",
+      "projectId": "J000352",
+      "projectIndex": 2,
+      "hoursPerWeek": 4,
+      "startWeek": 2,
+      "endWeek": 8
+    },
+    {
+      "resourceName": "Renee",
+      "projectId": "J000352",
+      "projectIndex": 2,
+      "hoursPerWeek": 8,
+      "startWeek": 9,
+      "endWeek": 26
+    },
+    {
+      "resourceName": "Jennifer",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 40,
+      "startWeek": 1,
+      "endWeek": 3
+    },
+    {
+      "resourceName": "Jennifer",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 32,
+      "startWeek": 4,
+      "endWeek": 4
+    },
+    {
+      "resourceName": "Jennifer",
       "projectId": "F000001",
       "projectIndex": 6,
       "hoursPerWeek": 40,
@@ -600,92 +852,12 @@
       "endWeek": 12
     },
     {
-      "resourceName": "Renee",
-      "projectId": "J000352",
-      "projectIndex": 2,
-      "hoursPerWeek": 4,
-      "startWeek": 2,
-      "endWeek": 8
-    },
-    {
-      "resourceName": "Renee",
-      "projectId": "J000352",
-      "projectIndex": 2,
-      "hoursPerWeek": 8,
-      "startWeek": 9,
-      "endWeek": 26
-    },
-    {
-      "resourceName": "Renee",
-      "projectId": "F000001",
-      "projectIndex": 4,
-      "hoursPerWeek": 8,
-      "startWeek": 2,
-      "endWeek": 8
-    },
-    {
-      "resourceName": "Renee",
-      "projectId": "F000002",
-      "projectIndex": 5,
-      "hoursPerWeek": 8,
-      "startWeek": 2,
-      "endWeek": 9
-    },
-    {
       "resourceName": "Jennifer",
       "projectId": "F000001",
       "projectIndex": 6,
-      "hoursPerWeek": 40,
-      "startWeek": 1,
-      "endWeek": 3
-    },
-    {
-      "resourceName": "Jennifer",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 32,
-      "startWeek": 4,
-      "endWeek": 4
-    },
-    {
-      "resourceName": "Jennifer",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 40,
-      "startWeek": 5,
+      "hoursPerWeek": 16,
+      "startWeek": 13,
       "endWeek": 13
-    },
-    {
-      "resourceName": "Jennifer",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 32,
-      "startWeek": 14,
-      "endWeek": 14
-    },
-    {
-      "resourceName": "Jennifer",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 40,
-      "startWeek": 15,
-      "endWeek": 16
-    },
-    {
-      "resourceName": "Jennifer",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 32,
-      "startWeek": 17,
-      "endWeek": 17
-    },
-    {
-      "resourceName": "Jennifer",
-      "projectId": "F000001",
-      "projectIndex": 6,
-      "hoursPerWeek": 40,
-      "startWeek": 18,
-      "endWeek": 21
     },
     {
       "resourceName": "Matt",
@@ -725,7 +897,31 @@
       "projectIndex": 6,
       "hoursPerWeek": 40,
       "startWeek": 5,
-      "endWeek": 8
+      "endWeek": 13
+    },
+    {
+      "resourceName": "Bagus",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 32,
+      "startWeek": 14,
+      "endWeek": 14
+    },
+    {
+      "resourceName": "Bagus",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 40,
+      "startWeek": 15,
+      "endWeek": 16
+    },
+    {
+      "resourceName": "Bagus",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 24,
+      "startWeek": 17,
+      "endWeek": 17
     },
     {
       "resourceName": "Pamela",
@@ -765,29 +961,53 @@
       "projectIndex": 6,
       "hoursPerWeek": 40,
       "startWeek": 5,
-      "endWeek": 8
+      "endWeek": 13
+    },
+    {
+      "resourceName": "Siva",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 32,
+      "startWeek": 14,
+      "endWeek": 14
+    },
+    {
+      "resourceName": "Siva",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 40,
+      "startWeek": 15,
+      "endWeek": 16
+    },
+    {
+      "resourceName": "Siva",
+      "projectId": "F000001",
+      "projectIndex": 6,
+      "hoursPerWeek": 24,
+      "startWeek": 17,
+      "endWeek": 17
     },
     {
       "resourceName": "Ali",
       "projectId": "F000001",
       "projectIndex": 4,
       "hoursPerWeek": 2,
-      "startWeek": 1,
-      "endWeek": 8
+      "startWeek": 5,
+      "endWeek": 12
     },
     {
       "resourceName": "Ali",
       "projectId": "F000002",
       "projectIndex": 5,
       "hoursPerWeek": 2,
-      "startWeek": 1,
-      "endWeek": 8
+      "startWeek": 3,
+      "endWeek": 10
     },
     {
       "resourceName": "Belinda",
       "projectId": "J000352",
       "projectIndex": 2,
-      "hoursPerWeek": 24,
+      "hoursPerWeek": 16,
       "startWeek": 3,
       "endWeek": 3
     },
@@ -795,7 +1015,7 @@
       "resourceName": "Belinda",
       "projectId": "J000352",
       "projectIndex": 2,
-      "hoursPerWeek": 40,
+      "hoursPerWeek": 24,
       "startWeek": 4,
       "endWeek": 4
     },
@@ -806,6 +1026,22 @@
       "hoursPerWeek": 32,
       "startWeek": 5,
       "endWeek": 26
+    },
+    {
+      "resourceName": "Belinda",
+      "projectId": "F000001",
+      "projectIndex": 8,
+      "hoursPerWeek": 12,
+      "startWeek": 3,
+      "endWeek": 4
+    },
+    {
+      "resourceName": "Belinda",
+      "projectId": "F000001",
+      "projectIndex": 8,
+      "hoursPerWeek": 10,
+      "startWeek": 5,
+      "endWeek": 8
     }
   ],
   "weeks": [
@@ -972,7 +1208,7 @@
       "quarter": "Q3"
     }
   ],
-  "exportDate": "2026-01-18T10:22:56.971Z",
+  "exportDate": "2026-01-18T10:29:33.329Z",
   "exportedBy": "Dashboard Export",
   "version": "1.0"
 }
