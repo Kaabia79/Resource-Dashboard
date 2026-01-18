@@ -604,6 +604,12 @@
         .export-btn:hover { background: #059669; }
 
     </style>
+    
+    <!-- AGGRESSIVE CACHE PREVENTION FOR TEAMS -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
     <!-- LOGIN -->
@@ -3079,13 +3085,17 @@
             try {
                 console.log('🔄 Checking GitHub for updates...');
                 
-                // Add timestamp for cache busting + random number for extra cache breaking
-                const cacheBuster = Date.now() + '_' + Math.random().toString(36).substring(7);
+                // Multi-layer cache busting for Teams/browser
+                const timestamp = Date.now();
+                const random = Math.random().toString(36).substring(2, 15);
+                const cacheBuster = `${timestamp}_${random}_${Math.floor(Math.random() * 1000000)}`;
+                
                 const response = await fetch(GITHUB_CONFIG.dataUrl + '?v=' + cacheBuster, {
                     cache: 'no-store',  // Prevent browser caching
                     headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache'
+                        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
                     }
                 });
                 
@@ -3099,12 +3109,15 @@
                 // Use proper hash of the actual data content
                 const dataHash = hashString(JSON.stringify(data.projects) + JSON.stringify(data.resources) + JSON.stringify(data.assignments));
                 
+                // Check sessionStorage for last hash (clears on browser close/refresh)
+                const storedHash = sessionStorage.getItem('lastDataHash');
+                
                 // Force load on first check or if data changed
                 if (GITHUB_CONFIG.isFirstLoad) {
                     console.log('🎯 First load - forcing data refresh');
                     GITHUB_CONFIG.isFirstLoad = false;
-                } else if (GITHUB_CONFIG.lastDataHash === dataHash) {
-                    console.log('✓ Data unchanged, no update needed');
+                } else if (storedHash && storedHash === String(dataHash)) {
+                    console.log('✓ Data unchanged, no update needed (hash: ' + dataHash + ')');
                     return false;
                 }
                 
@@ -3116,6 +3129,9 @@
                 
                 GITHUB_CONFIG.lastUpdate = new Date();
                 GITHUB_CONFIG.lastDataHash = dataHash;
+                
+                // Store hash in sessionStorage (clears on page refresh)
+                sessionStorage.setItem('lastDataHash', String(dataHash));
                 
                 updateAll();
                 updateDataSourceDisplay();
@@ -3169,14 +3185,16 @@
         function manualRefresh() {
             showGitHubNotification('🔄 Forcing refresh from GitHub...', 'info');
             
-            // Temporarily clear hash to force reload
+            // Clear both memory hash and sessionStorage hash to force reload
             const previousHash = GITHUB_CONFIG.lastDataHash;
             GITHUB_CONFIG.lastDataHash = null;
+            sessionStorage.removeItem('lastDataHash');
             
             loadFromGitHub().then(updated => {
                 if (!updated) {
                     // Restore previous hash if no update was loaded
                     GITHUB_CONFIG.lastDataHash = previousHash;
+                    sessionStorage.setItem('lastDataHash', String(previousHash));
                     showGitHubNotification('ℹ️ Already up to date - no changes found', 'info');
                 }
             });
