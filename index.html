@@ -3,7 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <title>Resource Planning Dashboard - Production</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+        
+        // ===== PLANNED VS ACTUAL REPORT FUNCTIONS =====
+        let showPVChart = false;
+        
+        function populatePVSelector() {
+            const selector = document.getElementById('pvReportSelector');
+            if (!selector) return;
+            
+            selector.innerHTML = '<option value="">-- Choose a project --</option>';
+            projects.forEach((proj, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = proj.name;
+                selector.appendChild(option);
+            });
+        }
+        
+        function renderPVReport() {
+            const selector = document.getElementById('pvReportSelector');
+            const content = document.getElementById('pvReportContent');
+            const idx = parseInt(selector.value);
+            
+            if (isNaN(idx)) {
+                content.innerHTML = '<div style="text-align: center; padding: 60px; color: #9ca3af; font-size: 16px;">Please select a project to view the Planned vs Actual Hours Report</div>';
+                return;
+            }
+            
+            const project = projects[idx];
+            
+            // Get all assignments for this project
+            const projectAssignments = assignments.filter(a => a.projectIndex === idx);
+            
+            // Group by resource to calculate totals
+            const resourceData = {};
+            projectAssignments.forEach(assign => {
+                if (!resourceData[assign.resourceName]) {
+                    resourceData[assign.resourceName] = {
+                        name: assign.resourceName,
+                        role: assign.role || 'N/A',
+                        plannedHours: 0,
+                        actualHours: 0
+                    };
+                }
+                // Calculate hours for this assignment
+                const weekCount = assign.endWeek - assign.startWeek + 1;
+                const hours = assign.hoursPerWeek * weekCount;
+                resourceData[assign.resourceName].plannedHours += hours;
+                resourceData[assign.resourceName].actualHours += assign.actualHours || 0;
+            });
+            
+            const resourceArray = Object.values(resourceData);
+            
+            // Calculate project totals
+            const totalPlanned = project.totalHours || resourceArray.reduce((sum, r) => sum + r.plannedHours, 0);
+            const totalActual = project.actualEffort || resourceArray.reduce((sum, r) => sum + r.actualHours, 0);
+            const totalRemaining = totalPlanned - totalActual;
+            const percentComplete = totalPlanned > 0 ? Math.round((totalActual / totalPlanned) * 100) : 0;
+            const variance = totalActual - totalPlanned;
+            const variancePercent = totalPlanned > 0 ? Math.round((variance / totalPlanned) * 100) : 0;
+            
+            // Status
+            let statusClass = 'success';
+            let statusText = 'On Budget';
+            let statusBadge = 'badge-green';
+            
+            if (variance > 0) {
+                statusClass = 'danger';
+                statusText = 'Over Budget';
+                statusBadge = 'badge-red';
+            } else if (totalRemaining < totalPlanned * 0.1) {
+                statusClass = 'warning';
+                statusText = 'Near Budget';
+                statusBadge = 'badge-yellow';
+            }
+            
+            let html = `
+                <div class="export-buttons">
+                    <button class="export-btn" onclick="window.print()">🖨️ Print Report</button>
+                    <button class="export-btn" onclick="copyPVReport()">📋 Copy to Clipboard</button>
+                </div>
+                
+                <div class="report-header">
+                    <div class="report-title">${project.name}</div>
+                    <div class="report-subtitle">${project.client} | ${project.status}</div>
+                </div>
+                
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Total Planned</div>
+                        <div class="summary-value">${Math.round(totalPlanned)}h</div>
+                        <div class="summary-detail">Budgeted hours</div>
+                    </div>
+                    
+                    <div class="summary-card ${statusClass}">
+                        <div class="summary-label">Total Actual</div>
+                        <div class="summary-value">${Math.round(totalActual)}h</div>
+                        <div class="summary-detail">${percentComplete}% complete</div>
+                        <span class="summary-badge ${statusBadge}">${statusText}</span>
+                    </div>
+                    
+                    <div class="summary-card ${totalRemaining >= 0 ? 'success' : 'danger'}">
+                        <div class="summary-label">Remaining</div>
+                        <div class="summary-value">${Math.round(totalRemaining)}h</div>
+                        <div class="summary-detail">${totalRemaining >= 0 ? 'Hours left' : 'Hours over'}</div>
+                    </div>
+                    
+                    <div class="summary-card ${variance <= 0 ? 'success' : 'danger'}">
+                        <div class="summary-label">Variance</div>
+                        <div class="summary-value">${variance > 0 ? '+' : ''}${Math.round(variance)}h</div>
+                        <div class="summary-detail">${variancePercent > 0 ? '+' : ''}${variancePercent}% vs budget</div>
+                    </div>
+                </div>
+                
+                <div class="section-header">
+                    <div class="section-title">👥 Resource Breakdown (${resourceArray.length} Resources)</div>
+                    <button class="toggle-chart-btn" onclick="togglePVChart()">
+                        ${showPVChart ? '📋 Show Table' : '📊 Show Chart'}
+                    </button>
+                </div>
+                
+                <div class="chart-container ${showPVChart ? 'visible' : ''}" id="pvChartView">
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-color legend-planned"></div>
+                            <span>Planned Hours</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color legend-actual"></div>
+                            <span>Actual Hours</span>
+                        </div>
+                    </div>
+                    ${renderPVChart(resourceArray, totalPlanned)}
+                </div>
+                
+                <div id="pvTableView" style="display: ${showPVChart ? 'none' : 'block'}">
+                    <table class="resource-table">
+                        <thead>
+                            <tr>
+                                <th>Resource</th>
+                                <th>Planned Hours</th>
+                                <th>Actual Hours</th>
+                                <th>Remaining</th>
+                                <th>Variance</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${renderPVTableRows(resourceArray)}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+        }
+        
+        function renderPVTableRows(resources) {
+            return resources.map(res => {
+                const remaining = res.plannedHours - res.actualHours;
+                const variance = res.actualHours - res.plannedHours;
+                const progress = res.plannedHours > 0 ? Math.min(100, Math.round((res.actualHours / res.plannedHours) * 100)) : 0;
+                
+                let varianceClass = 'variance-neutral';
+                let varianceSign = '';
+                if (variance > 0) {
+                    varianceClass = 'variance-negative';
+                    varianceSign = '+';
+                } else if (variance < 0) {
+                    varianceClass = 'variance-positive';
+                }
+                
+                return `
+                    <tr>
+                        <td>
+                            <div class="resource-name-cell">${res.name}</div>
+                            <div class="resource-role-cell">${res.role}</div>
+                        </td>
+                        <td><span class="hours-number">${Math.round(res.plannedHours)}h</span></td>
+                        <td><span class="hours-number">${Math.round(res.actualHours)}h</span></td>
+                        <td><span class="hours-number ${remaining >= 0 ? 'variance-positive' : 'variance-negative'}">${Math.round(remaining)}h</span></td>
+                        <td><span class="hours-number ${varianceClass}">${varianceSign}${Math.round(variance)}h</span></td>
+                        <td>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar ${progress > 100 ? 'over' : ''}" style="width: ${Math.min(progress, 100)}%"></div>
+                                <div class="progress-label">${progress}%</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function renderPVChart(resources, maxHours) {
+            return resources.map(res => {
+                const plannedWidth = (res.plannedHours / maxHours) * 100;
+                const actualWidth = (res.actualHours / maxHours) * 100;
+                const isOver = res.actualHours > res.plannedHours;
+                
+                return `
+                    <div class="chart-row">
+                        <div class="chart-label">${res.name} (${res.role})</div>
+                        <div class="chart-bars">
+                            <div class="chart-bar-planned" style="width: ${plannedWidth}%">
+                                ${Math.round(res.plannedHours)}h Planned
+                            </div>
+                            <div class="chart-bar-actual ${isOver ? 'over' : ''}" style="width: ${actualWidth}%">
+                                ${Math.round(res.actualHours)}h Actual
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function togglePVChart() {
+            showPVChart = !showPVChart;
+            renderPVReport();
+        }
+        
+        function copyPVReport() {
+            const selector = document.getElementById('pvReportSelector');
+            const idx = parseInt(selector.value);
+            if (isNaN(idx)) return;
+            
+            const project = projects[idx];
+            const projectAssignments = assignments.filter(a => a.projectIndex === idx);
+            const resourceData = {};
+            
+            projectAssignments.forEach(assign => {
+                if (!resourceData[assign.resourceName]) {
+                    resourceData[assign.resourceName] = { 
+                        name: assign.resourceName, 
+                        role: assign.role || 'N/A', 
+                        plannedHours: 0, 
+                        actualHours: 0 
+                    };
+                }
+                const weekCount = assign.endWeek - assign.startWeek + 1;
+                resourceData[assign.resourceName].plannedHours += assign.hoursPerWeek * weekCount;
+                resourceData[assign.resourceName].actualHours += assign.actualHours || 0;
+            });
+            
+            const totalPlanned = project.totalHours || Object.values(resourceData).reduce((sum, r) => sum + r.plannedHours, 0);
+            const totalActual = project.actualEffort || Object.values(resourceData).reduce((sum, r) => sum + r.actualHours, 0);
+            
+            let text = `PROJECT PLANNED VS ACTUAL HOURS REPORT\n\n`;
+            text += `Project: ${project.name}\n`;
+            text += `Client: ${project.client}\n\n`;
+            text += `SUMMARY:\n`;
+            text += `Planned: ${Math.round(totalPlanned)}h\n`;
+            text += `Actual: ${Math.round(totalActual)}h\n`;
+            text += `Remaining: ${Math.round(totalPlanned - totalActual)}h\n\n`;
+            text += `RESOURCES:\n`;
+            
+            Object.values(resourceData).forEach(res => {
+                text += `\n${res.name} (${res.role})\n`;
+                text += `  Planned: ${Math.round(res.plannedHours)}h\n`;
+                text += `  Actual: ${Math.round(res.actualHours)}h\n`;
+                text += `  Remaining: ${Math.round(res.plannedHours - res.actualHours)}h\n`;
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Report copied to clipboard!');
+            });
+        }
+
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; }
@@ -270,6 +537,72 @@
         .cal-project { font-size: 9px; padding: 3px 6px; border-radius: 3px; margin-bottom: 2px; color: white; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 8px; }
         .cal-nav button { padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    
+        /* PLANNED VS ACTUAL REPORT STYLES */
+        .report-selector { background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 25px; border: 2px solid #e5e7eb; }
+        .report-selector label { display: block; font-weight: 600; color: #1f2937; margin-bottom: 10px; font-size: 14px; }
+        .report-selector select { width: 100%; max-width: 600px; padding: 12px 16px; border: 2px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+        
+        .report-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; }
+        .report-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .report-subtitle { font-size: 14px; opacity: 0.9; }
+        
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .summary-card { background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); padding: 20px; border-radius: 12px; border-left: 5px solid #667eea; }
+        .summary-card.success { border-left-color: #10b981; }
+        .summary-card.warning { border-left-color: #f59e0b; }
+        .summary-card.danger { border-left-color: #ef4444; }
+        
+        .summary-label { font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .summary-value { font-size: 32px; font-weight: 700; color: #1f2937; margin-bottom: 5px; }
+        .summary-detail { font-size: 13px; color: #6b7280; }
+        .summary-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 8px; }
+        .badge-green { background: #d1fae5; color: #065f46; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-yellow { background: #fef3c7; color: #92400e; }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin: 30px 0 15px 0; padding-bottom: 10px; border-bottom: 3px solid #e5e7eb; }
+        .section-title { font-size: 18px; font-weight: 700; color: #1f2937; }
+        .toggle-chart-btn { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .toggle-chart-btn:hover { background: #5a67d8; }
+        
+        .resource-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .resource-table thead { background: #f3f4f6; }
+        .resource-table th { padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb; }
+        .resource-table td { padding: 16px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+        .resource-table tbody tr:hover { background: #f9fafb; }
+        
+        .resource-name-cell { font-weight: 600; color: #1f2937; }
+        .resource-role-cell { font-size: 12px; color: #6b7280; margin-top: 3px; }
+        .hours-number { font-weight: 600; font-size: 15px; }
+        .variance-positive { color: #10b981; }
+        .variance-negative { color: #ef4444; }
+        .variance-neutral { color: #6b7280; }
+        
+        .progress-bar-container { width: 100%; height: 20px; background: #e5e7eb; border-radius: 10px; overflow: hidden; position: relative; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); border-radius: 10px; transition: width 0.3s; }
+        .progress-bar.over { background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%); }
+        .progress-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: 700; color: #1f2937; z-index: 10; }
+        
+        .chart-container { display: none; background: #f9fafb; padding: 25px; border-radius: 12px; margin-bottom: 30px; border: 2px solid #e5e7eb; }
+        .chart-container.visible { display: block; }
+        .chart-row { margin-bottom: 20px; }
+        .chart-label { font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 13px; }
+        .chart-bars { display: flex; gap: 8px; align-items: center; }
+        .chart-bar-planned { height: 35px; background: #93c5fd; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; color: #1e3a8a; font-weight: 600; font-size: 12px; }
+        .chart-bar-actual { height: 35px; background: #6ee7b7; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; color: #065f46; font-weight: 600; font-size: 12px; }
+        .chart-bar-actual.over { background: #fca5a5; color: #991b1b; }
+        
+        .chart-legend { display: flex; gap: 20px; margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+        .legend-color { width: 20px; height: 20px; border-radius: 4px; }
+        .legend-planned { background: #93c5fd; }
+        .legend-actual { background: #6ee7b7; }
+        
+        .export-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
+        .export-btn { background: #10b981; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .export-btn:hover { background: #059669; }
+
     </style>
 </head>
 <body>
@@ -328,6 +661,7 @@
             <button class="tab" onclick="switchTab('projects')">📋 Projects</button>
             <button class="tab" onclick="switchTab('project-detail')">📄 Project Details</button>
             <button class="tab" onclick="switchTab('calendar')">📅 My Calendar</button>
+            <button class="tab" onclick="switchTab('planned-vs-actual')">📊 Planned vs Actual</button>
         </div>
         
         <div class="controls">
@@ -414,6 +748,19 @@
                 <div id="project-detail-content"></div>
             </div>
             
+            
+            <!-- PLANNED VS ACTUAL TAB -->
+            <div id="tab-planned-vs-actual" class="view">
+                <div class="report-selector">
+                    <label>Select Project to View Planned vs Actual Hours</label>
+                    <select id="pvReportSelector" onchange="renderPVReport()">
+                        <option value="">-- Choose a project --</option>
+                    </select>
+                </div>
+                
+                <div id="pvReportContent"></div>
+            </div>
+
             <!-- CALENDAR VIEW -->
             <div id="tab-calendar" class="view">
                 <div class="cal-nav">
@@ -1330,6 +1677,7 @@
                     switchTab('calendar');
                 }
                 populateCalResources();
+            populatePVSelector();
             } else {
                 document.getElementById('loginError').style.display = 'block';
             }
@@ -1723,7 +2071,8 @@
         
         function updateAll() {
             populateProjectSelector(); // Populate project dropdown when data changes
-            populateCalResources(); // Populate calendar resource dropdown
+            populateCalResources();
+            populatePVSelector(); // Populate calendar resource dropdown
             renderGantt();
             const activeTab = document.querySelector('.view.active').id;
             if (activeTab === 'tab-whatif') renderWhatIf();
@@ -2456,6 +2805,273 @@
                 updateDataSourceDisplay();
             }
         };
+    
+        
+        // ===== PLANNED VS ACTUAL REPORT FUNCTIONS =====
+        let showPVChart = false;
+        
+        function populatePVSelector() {
+            const selector = document.getElementById('pvReportSelector');
+            if (!selector) return;
+            
+            selector.innerHTML = '<option value="">-- Choose a project --</option>';
+            projects.forEach((proj, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = proj.name;
+                selector.appendChild(option);
+            });
+        }
+        
+        function renderPVReport() {
+            const selector = document.getElementById('pvReportSelector');
+            const content = document.getElementById('pvReportContent');
+            const idx = parseInt(selector.value);
+            
+            if (isNaN(idx)) {
+                content.innerHTML = '<div style="text-align: center; padding: 60px; color: #9ca3af; font-size: 16px;">Please select a project to view the Planned vs Actual Hours Report</div>';
+                return;
+            }
+            
+            const project = projects[idx];
+            
+            // Get all assignments for this project
+            const projectAssignments = assignments.filter(a => a.projectIndex === idx);
+            
+            // Group by resource to calculate totals
+            const resourceData = {};
+            projectAssignments.forEach(assign => {
+                if (!resourceData[assign.resourceName]) {
+                    resourceData[assign.resourceName] = {
+                        name: assign.resourceName,
+                        role: assign.role || 'N/A',
+                        plannedHours: 0,
+                        actualHours: 0
+                    };
+                }
+                // Calculate hours for this assignment
+                const weekCount = assign.endWeek - assign.startWeek + 1;
+                const hours = assign.hoursPerWeek * weekCount;
+                resourceData[assign.resourceName].plannedHours += hours;
+                resourceData[assign.resourceName].actualHours += assign.actualHours || 0;
+            });
+            
+            const resourceArray = Object.values(resourceData);
+            
+            // Calculate project totals
+            const totalPlanned = project.totalHours || resourceArray.reduce((sum, r) => sum + r.plannedHours, 0);
+            const totalActual = project.actualEffort || resourceArray.reduce((sum, r) => sum + r.actualHours, 0);
+            const totalRemaining = totalPlanned - totalActual;
+            const percentComplete = totalPlanned > 0 ? Math.round((totalActual / totalPlanned) * 100) : 0;
+            const variance = totalActual - totalPlanned;
+            const variancePercent = totalPlanned > 0 ? Math.round((variance / totalPlanned) * 100) : 0;
+            
+            // Status
+            let statusClass = 'success';
+            let statusText = 'On Budget';
+            let statusBadge = 'badge-green';
+            
+            if (variance > 0) {
+                statusClass = 'danger';
+                statusText = 'Over Budget';
+                statusBadge = 'badge-red';
+            } else if (totalRemaining < totalPlanned * 0.1) {
+                statusClass = 'warning';
+                statusText = 'Near Budget';
+                statusBadge = 'badge-yellow';
+            }
+            
+            let html = `
+                <div class="export-buttons">
+                    <button class="export-btn" onclick="window.print()">🖨️ Print Report</button>
+                    <button class="export-btn" onclick="copyPVReport()">📋 Copy to Clipboard</button>
+                </div>
+                
+                <div class="report-header">
+                    <div class="report-title">${project.name}</div>
+                    <div class="report-subtitle">${project.client} | ${project.status}</div>
+                </div>
+                
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Total Planned</div>
+                        <div class="summary-value">${Math.round(totalPlanned)}h</div>
+                        <div class="summary-detail">Budgeted hours</div>
+                    </div>
+                    
+                    <div class="summary-card ${statusClass}">
+                        <div class="summary-label">Total Actual</div>
+                        <div class="summary-value">${Math.round(totalActual)}h</div>
+                        <div class="summary-detail">${percentComplete}% complete</div>
+                        <span class="summary-badge ${statusBadge}">${statusText}</span>
+                    </div>
+                    
+                    <div class="summary-card ${totalRemaining >= 0 ? 'success' : 'danger'}">
+                        <div class="summary-label">Remaining</div>
+                        <div class="summary-value">${Math.round(totalRemaining)}h</div>
+                        <div class="summary-detail">${totalRemaining >= 0 ? 'Hours left' : 'Hours over'}</div>
+                    </div>
+                    
+                    <div class="summary-card ${variance <= 0 ? 'success' : 'danger'}">
+                        <div class="summary-label">Variance</div>
+                        <div class="summary-value">${variance > 0 ? '+' : ''}${Math.round(variance)}h</div>
+                        <div class="summary-detail">${variancePercent > 0 ? '+' : ''}${variancePercent}% vs budget</div>
+                    </div>
+                </div>
+                
+                <div class="section-header">
+                    <div class="section-title">👥 Resource Breakdown (${resourceArray.length} Resources)</div>
+                    <button class="toggle-chart-btn" onclick="togglePVChart()">
+                        ${showPVChart ? '📋 Show Table' : '📊 Show Chart'}
+                    </button>
+                </div>
+                
+                <div class="chart-container ${showPVChart ? 'visible' : ''}" id="pvChartView">
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-color legend-planned"></div>
+                            <span>Planned Hours</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color legend-actual"></div>
+                            <span>Actual Hours</span>
+                        </div>
+                    </div>
+                    ${renderPVChart(resourceArray, totalPlanned)}
+                </div>
+                
+                <div id="pvTableView" style="display: ${showPVChart ? 'none' : 'block'}">
+                    <table class="resource-table">
+                        <thead>
+                            <tr>
+                                <th>Resource</th>
+                                <th>Planned Hours</th>
+                                <th>Actual Hours</th>
+                                <th>Remaining</th>
+                                <th>Variance</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${renderPVTableRows(resourceArray)}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+        }
+        
+        function renderPVTableRows(resources) {
+            return resources.map(res => {
+                const remaining = res.plannedHours - res.actualHours;
+                const variance = res.actualHours - res.plannedHours;
+                const progress = res.plannedHours > 0 ? Math.min(100, Math.round((res.actualHours / res.plannedHours) * 100)) : 0;
+                
+                let varianceClass = 'variance-neutral';
+                let varianceSign = '';
+                if (variance > 0) {
+                    varianceClass = 'variance-negative';
+                    varianceSign = '+';
+                } else if (variance < 0) {
+                    varianceClass = 'variance-positive';
+                }
+                
+                return `
+                    <tr>
+                        <td>
+                            <div class="resource-name-cell">${res.name}</div>
+                            <div class="resource-role-cell">${res.role}</div>
+                        </td>
+                        <td><span class="hours-number">${Math.round(res.plannedHours)}h</span></td>
+                        <td><span class="hours-number">${Math.round(res.actualHours)}h</span></td>
+                        <td><span class="hours-number ${remaining >= 0 ? 'variance-positive' : 'variance-negative'}">${Math.round(remaining)}h</span></td>
+                        <td><span class="hours-number ${varianceClass}">${varianceSign}${Math.round(variance)}h</span></td>
+                        <td>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar ${progress > 100 ? 'over' : ''}" style="width: ${Math.min(progress, 100)}%"></div>
+                                <div class="progress-label">${progress}%</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function renderPVChart(resources, maxHours) {
+            return resources.map(res => {
+                const plannedWidth = (res.plannedHours / maxHours) * 100;
+                const actualWidth = (res.actualHours / maxHours) * 100;
+                const isOver = res.actualHours > res.plannedHours;
+                
+                return `
+                    <div class="chart-row">
+                        <div class="chart-label">${res.name} (${res.role})</div>
+                        <div class="chart-bars">
+                            <div class="chart-bar-planned" style="width: ${plannedWidth}%">
+                                ${Math.round(res.plannedHours)}h Planned
+                            </div>
+                            <div class="chart-bar-actual ${isOver ? 'over' : ''}" style="width: ${actualWidth}%">
+                                ${Math.round(res.actualHours)}h Actual
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function togglePVChart() {
+            showPVChart = !showPVChart;
+            renderPVReport();
+        }
+        
+        function copyPVReport() {
+            const selector = document.getElementById('pvReportSelector');
+            const idx = parseInt(selector.value);
+            if (isNaN(idx)) return;
+            
+            const project = projects[idx];
+            const projectAssignments = assignments.filter(a => a.projectIndex === idx);
+            const resourceData = {};
+            
+            projectAssignments.forEach(assign => {
+                if (!resourceData[assign.resourceName]) {
+                    resourceData[assign.resourceName] = { 
+                        name: assign.resourceName, 
+                        role: assign.role || 'N/A', 
+                        plannedHours: 0, 
+                        actualHours: 0 
+                    };
+                }
+                const weekCount = assign.endWeek - assign.startWeek + 1;
+                resourceData[assign.resourceName].plannedHours += assign.hoursPerWeek * weekCount;
+                resourceData[assign.resourceName].actualHours += assign.actualHours || 0;
+            });
+            
+            const totalPlanned = project.totalHours || Object.values(resourceData).reduce((sum, r) => sum + r.plannedHours, 0);
+            const totalActual = project.actualEffort || Object.values(resourceData).reduce((sum, r) => sum + r.actualHours, 0);
+            
+            let text = `PROJECT PLANNED VS ACTUAL HOURS REPORT\n\n`;
+            text += `Project: ${project.name}\n`;
+            text += `Client: ${project.client}\n\n`;
+            text += `SUMMARY:\n`;
+            text += `Planned: ${Math.round(totalPlanned)}h\n`;
+            text += `Actual: ${Math.round(totalActual)}h\n`;
+            text += `Remaining: ${Math.round(totalPlanned - totalActual)}h\n\n`;
+            text += `RESOURCES:\n`;
+            
+            Object.values(resourceData).forEach(res => {
+                text += `\n${res.name} (${res.role})\n`;
+                text += `  Planned: ${Math.round(res.plannedHours)}h\n`;
+                text += `  Actual: ${Math.round(res.actualHours)}h\n`;
+                text += `  Remaining: ${Math.round(res.plannedHours - res.actualHours)}h\n`;
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Report copied to clipboard!');
+            });
+        }
+
     </script>
 </body>
 </html>
