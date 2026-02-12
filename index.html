@@ -790,7 +790,7 @@
     <script>
         // === GITHUB AUTO-LOAD CONFIGURATION ===
         const GITHUB_CONFIG = {
-            enabled: true,  // Set to false to disable auto-load
+            enabled: false,  // Disabled - using Excel upload instead
             dataUrl: 'https://kaabia79.github.io/Resource-Dashboard/Portfolio-data.json',
             refreshInterval: 5 * 60 * 1000,  // 5 minutes in milliseconds
             lastUpdate: null,
@@ -6228,7 +6228,16 @@
         }
         
         function extractProjectsFromExcel(workbook) {
-            const sheet = workbook.Sheets['Project Tab'];
+            // Handle different possible sheet names (with/without spaces, trailing spaces)
+            const sheetName = Object.keys(workbook.Sheets).find(name => 
+                name.toLowerCase().includes('project')
+            ) || 'Project Tab';
+            const sheet = workbook.Sheets[sheetName];
+            
+            if (!sheet) {
+                throw new Error(`Could not find Project sheet. Available sheets: ${Object.keys(workbook.Sheets).join(', ')}`);
+            }
+            
             const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
             
             const newProjects = [];
@@ -6240,8 +6249,9 @@
                 const rowLabel = row[0];
                 const jobNo = row[1];
                 const jobName = row[2];
-                const totalHours = row[165];
-                const totalRevenue = row[168];
+                const totalHours = row[159];  // Excel Column 160 = array index 159 (Total Forecast Hrs)
+                const actualHours = row[160]; // Excel Column 161 = array index 160 (Total Actual Hrs)
+                const totalRevenue = row[162]; // Excel Column 163 = array index 162 (Total Forecast Amt)
                 
                 if (rowLabel && !String(rowLabel).includes('Total')) {
                     currentClient = rowLabel;
@@ -6253,6 +6263,7 @@
                     if (revenue === 0) continue;
                     
                     const hours = parseFloat(totalHours) || 0;
+                    const actual = parseFloat(actualHours) || 0;
                     const status = (currentClient && (currentClient.includes('RSL') || currentClient.includes('Endeavour'))) 
                         ? 'Qualified' : 'Won';
                     
@@ -6261,6 +6272,7 @@
                         name: jobName,
                         client: currentClient || 'Unknown',
                         totalHours: Math.round(hours),
+                        actualEffort: Math.round(actual),
                         revenue: Math.round(revenue),
                         status: status,
                         fullName: `${currentClient} - ${jobNo} - ${jobName}`,
@@ -6275,7 +6287,16 @@
         }
         
         function extractResourcesFromExcel(workbook) {
-            const sheet = workbook.Sheets['Resource Tab'];
+            // Handle different possible sheet names (with/without spaces, trailing spaces)
+            const sheetName = Object.keys(workbook.Sheets).find(name => 
+                name.toLowerCase().includes('resource')
+            ) || 'Resource Tab';
+            const sheet = workbook.Sheets[sheetName];
+            
+            if (!sheet) {
+                throw new Error(`Could not find Resource sheet. Available sheets: ${Object.keys(workbook.Sheets).join(', ')}`);
+            }
+            
             const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
             
             const newResources = [];
@@ -6302,7 +6323,16 @@
         }
         
         function extractAssignmentsFromExcel(workbook, projects) {
-            const sheet = workbook.Sheets['Resource Tab'];
+            // Handle different possible sheet names (with/without spaces, trailing spaces)
+            const sheetName = Object.keys(workbook.Sheets).find(name => 
+                name.toLowerCase().includes('resource')
+            ) || 'Resource Tab';
+            const sheet = workbook.Sheets[sheetName];
+            
+            if (!sheet) {
+                throw new Error(`Could not find Resource sheet. Available sheets: ${Object.keys(workbook.Sheets).join(', ')}`);
+            }
+            
             const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
             
             const newAssignments = [];
@@ -6915,7 +6945,7 @@
             console.log('  - Upload capability enabled');
             console.log('  - Heat map adjusts by view');
             console.log('  - Project details with date range selector');
-            console.log('  - GitHub auto-load enabled');
+            console.log('  - GitHub auto-load: DISABLED (using Excel upload)');
             populateProjectSelector();
             updateAll();
             
