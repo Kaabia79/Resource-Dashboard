@@ -790,7 +790,7 @@
     <script>
         // === GITHUB AUTO-LOAD CONFIGURATION ===
         const GITHUB_CONFIG = {
-            enabled: false,  // Disabled - using Excel upload instead
+            enabled: true,  // Re-enabled for team sharing via GitHub
             dataUrl: 'https://kaabia79.github.io/Resource-Dashboard/Portfolio-data.json',
             refreshInterval: 5 * 60 * 1000,  // 5 minutes in milliseconds
             lastUpdate: null,
@@ -6945,7 +6945,7 @@
             console.log('  - Upload capability enabled');
             console.log('  - Heat map adjusts by view');
             console.log('  - Project details with date range selector');
-            console.log('  - GitHub auto-load: DISABLED (using Excel upload)');
+            console.log('  - GitHub auto-load: ENABLED');
             populateProjectSelector();
             updateAll();
             
